@@ -109,10 +109,21 @@ dependencies {
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:flipper-integration")
 
+    // Force androidx.core to version compatible with RN 0.73 and compileSdk 34
+    implementation("androidx.core:core:1.12.0")
+    implementation("androidx.core:core-ktx:1.12.0")
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force "androidx.core:core:1.12.0"
+        force "androidx.core:core-ktx:1.12.0"
     }
 }
 

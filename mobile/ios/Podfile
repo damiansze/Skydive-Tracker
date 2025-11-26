@@ -5,7 +5,7 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-platform :ios, min_ios_version_supported
+platform :ios, '13.0'
 prepare_react_native_project!
 
 # If you are using a `react-native-flipper` your iOS build will fail when `NO_FLIPPER=1` is set.
@@ -51,5 +51,41 @@ target 'SkydiveTrackerTemp' do
       config[:reactNativePath],
       :mac_catalyst_enabled => false
     )
+    
+    # Fix for React Native 0.73 compatibility
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        # Set minimum iOS deployment target
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+        
+        # Fix for Boost compilation issues
+        if target.name == 'boost'
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+          config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'BOOST_ALL_NO_LIB=1'
+        end
+        
+        # Fix for Folly compilation issues
+        if target.name == 'Folly' || target.name.include?('folly')
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+          config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+          config.build_settings['HEADER_SEARCH_PATHS'] ||= []
+          config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/boost"'
+          config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/RCT-Folly"'
+        end
+        
+        # Fix for glog compilation
+        if target.name == 'glog'
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        end
+        
+        # Fix for React-Core and related pods
+        if target.name.include?('React') || target.name.include?('RCT')
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+          config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+        end
+      end
+    end
   end
 end
