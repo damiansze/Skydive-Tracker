@@ -1,0 +1,32 @@
+"""Equipment schemas"""
+from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import Optional
+from app.models.equipment import EquipmentType
+
+class EquipmentBase(BaseModel):
+    name: str = Field(..., min_length=1)
+    type: EquipmentType
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    serial_number: Optional[str] = None
+    purchase_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class EquipmentCreate(EquipmentBase):
+    pass
+
+class EquipmentUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1)
+    type: Optional[EquipmentType] = None
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    serial_number: Optional[str] = None
+    purchase_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class EquipmentResponse(EquipmentBase):
+    id: str
+
+    class Config:
+        from_attributes = True

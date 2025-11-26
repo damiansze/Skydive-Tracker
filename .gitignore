@@ -205,3 +205,21 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Mobile App
+mobile/node_modules/
+mobile/.gradle/
+mobile/android/app/build/
+mobile/ios/build/
+mobile/.expo/
+mobile/dist/
+
+# Backend
+backend/venv/
+backend/env/
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+backend/.pytest_cache/
+backend/htmlcov/
+backend/.coverage
