@@ -8,16 +8,8 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, '14.0'
 prepare_react_native_project!
 
-# If you are using a `react-native-flipper` your iOS build will fail when `NO_FLIPPER=1` is set.
-# because `react-native-flipper` depends on (FlipperKit,...) that will be excluded
-#
-# To fix this you can also exclude `react-native-flipper` using a `react-native.config.js`
-# ```js
-# module.exports = {
-#   dependencies: {
-#     ...(process.env.NO_FLIPPER ? { 'react-native-flipper': { platforms: { ios: null } } } : {}),
-# ```
-flipper_config = ENV['NO_FLIPPER'] == "1" ? FlipperConfiguration.disabled : FlipperConfiguration.enabled
+# Disable Flipper by default to avoid build issues
+flipper_config = FlipperConfiguration.disabled
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
@@ -30,10 +22,7 @@ target 'SkydiveTrackerTemp' do
 
   use_react_native!(
     :path => config[:reactNativePath],
-    # Enables Flipper.
-    #
-    # Note that if you have use_frameworks! enabled, Flipper will not work and
-    # you should disable the next line.
+    # Disable Flipper to avoid build issues
     :flipper_configuration => flipper_config,
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
@@ -58,34 +47,50 @@ target 'SkydiveTrackerTemp' do
         # Set minimum iOS deployment target (RN 0.73 requires 14.0 for React-RCTLinking)
         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
         
-        # Fix for Boost compilation issues - ensure Boost headers are found
+        # Fix C++ compilation for all targets
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+        
+        # Fix for Boost compilation issues
         if target.name == 'boost'
-          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
-          config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
           config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
           config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'BOOST_ALL_NO_LIB=1'
         end
         
-        # Fix for Folly compilation issues
-        if target.name == 'Folly' || target.name.include?('folly')
-          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
-          config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+        # Fix for RCT-Folly compilation issues (critical for React Native 0.73)
+        if target.name == 'RCT-Folly' || target.name.include?('RCT-Folly')
           config.build_settings['HEADER_SEARCH_PATHS'] ||= []
           config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/boost"'
+          config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/boost/boost"'
+          config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/RCT-Folly"'
+          
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(OTHER_CFLAGS)']
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFOLLY_NO_CONFIG'
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFOLLY_MOBILE=1'
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFOLLY_USE_LIBCPP=1'
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFOLLY_CFG_NO_COROUTINES=1'
+          
+          # Fix Unicode.cpp compilation
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_NO_CONFIG=1'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_MOBILE=1'
+        end
+        
+        # Fix for Folly compilation issues
+        if target.name == 'Folly' || target.name.include?('folly')
+          config.build_settings['HEADER_SEARCH_PATHS'] ||= []
+          config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/boost"'
+          config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/boost/boost"'
           config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/RCT-Folly"'
         end
         
         # Fix for glog compilation
         if target.name == 'glog'
-          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+          # Already handled by C++17 standard above
         end
         
         # Fix for React-Core and related pods - ensure Boost headers are accessible
         if target.name.include?('React') || target.name.include?('RCT')
-          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
-          config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
-          
-          # Ensure Boost headers are found for React pods
           config.build_settings['HEADER_SEARCH_PATHS'] ||= []
           config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/boost"'
           config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/boost/boost"'
