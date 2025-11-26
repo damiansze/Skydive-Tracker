@@ -28,13 +28,22 @@ const AppNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerShown: false,
+        tabBarActiveTintColor: '#007AFF',
+        tabBarInactiveTintColor: '#999',
+        headerStyle: {
+          backgroundColor: '#fff',
+        },
+        headerTintColor: '#333',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
       }}>
       <Tab.Screen 
         name="Jumps" 
         component={JumpsStack}
         options={{
           tabBarLabel: 'Sprünge',
+          headerShown: false,
         }}
       />
       <Tab.Screen 
@@ -42,6 +51,7 @@ const AppNavigator: React.FC = () => {
         component={StatisticsScreen}
         options={{
           tabBarLabel: 'Statistik',
+          title: 'Statistik',
         }}
       />
       <Tab.Screen 
@@ -49,6 +59,7 @@ const AppNavigator: React.FC = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profil',
+          title: 'Profil',
         }}
       />
     </Tab.Navigator>
