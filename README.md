@@ -154,7 +154,16 @@ backend/
 ## Setup
 
 ### Mobile App Setup
-Siehe [mobile/README.md](mobile/README.md)
+- **Detaillierte Setup-Anleitung:** Siehe [mobile/SETUP.md](mobile/SETUP.md)
+- **Kurze Übersicht:** Siehe [mobile/README.md](mobile/README.md)
+
+**Schnellstart:**
+1. Node.js >= 18 installieren
+2. Android Studio installieren (für Android) oder Xcode (für iOS, nur macOS)
+3. `cd mobile && npm install`
+4. Emulator starten (Android Studio Device Manager oder iOS Simulator)
+5. `npm start` (Metro Bundler)
+6. In neuem Terminal: `npm run android` oder `npm run ios`
 
 ### Backend Setup
 Siehe [backend/README.md](backend/README.md)
