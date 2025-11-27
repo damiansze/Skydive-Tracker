@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'home_screen_new.dart';
 import 'statistics_screen.dart';
 import 'equipment_screen.dart';
-import 'profile_screen.dart';
+import 'settings_screen.dart';
+import 'add_jump_screen.dart';
+import 'add_equipment_screen.dart';
 import '../providers/jump_provider.dart';
 import '../providers/equipment_provider.dart';
 import '../providers/profile_provider.dart';
@@ -28,37 +31,103 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  void _showAddDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.flight_takeoff),
+              title: const Text('Sprung erfassen'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddJumpScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.shopping_bag),
+              title: const Text('Equipment erfassen'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddEquipmentScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> screens = [
+      const HomeScreenNew(),
       const StatisticsScreen(),
       const EquipmentScreen(),
-      const ProfileScreen(),
     ];
 
     return Scaffold(
       body: screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Statistik',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
-            label: 'Equipment',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddDialog(context),
+        child: const Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.home),
+              onPressed: () {
+                setState(() {
+                  _selectedIndex = 0;
+                });
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.bar_chart),
+              onPressed: () {
+                setState(() {
+                  _selectedIndex = 1;
+                });
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.shopping_bag),
+              onPressed: () {
+                setState(() {
+                  _selectedIndex = 2;
+                });
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -13,6 +13,7 @@ class EquipmentService {
     String? model,
     String? serialNumber,
     DateTime? purchaseDate,
+    int? reminderAfterJumps,
     String? notes,
   }) async {
     final equipment = Equipment(
@@ -23,6 +24,7 @@ class EquipmentService {
       model: model,
       serialNumber: serialNumber,
       purchaseDate: purchaseDate,
+      reminderAfterJumps: reminderAfterJumps,
       notes: notes,
     );
 

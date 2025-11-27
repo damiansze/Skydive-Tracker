@@ -7,11 +7,13 @@ class ProfileBase(BaseModel):
     name: str = Field(..., min_length=1)
     license_number: Optional[str] = None
     license_type: Optional[str] = None
+    profile_picture_url: Optional[str] = None
 
 class ProfileUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1)
     license_number: Optional[str] = None
     license_type: Optional[str] = None
+    profile_picture_url: Optional[str] = None
 
 class ProfileResponse(ProfileBase):
     id: str

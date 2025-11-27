@@ -30,6 +30,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   double? _latitude;
   double? _longitude;
   LatLng? _currentLocation;
+  JumpType? _selectedJumpType;
   
   Set<String> _selectedEquipmentIds = {};
   Map<String, bool> _checklistItems = {};
@@ -57,6 +58,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     _notesController.text = jump.notes ?? '';
     _latitude = jump.latitude;
     _longitude = jump.longitude;
+    _selectedJumpType = jump.jumpType;
     _selectedEquipmentIds = jump.equipmentIds.toSet();
     
     if (_latitude != null && _longitude != null) {
@@ -223,6 +225,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           latitude: _latitude,
           longitude: _longitude,
           altitude: int.parse(_altitudeController.text),
+          jumpType: _selectedJumpType,
           equipmentIds: _selectedEquipmentIds.toList(),
           checklistCompleted: _checklistItems.values.every((v) => v),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
@@ -235,6 +238,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           latitude: _latitude,
           longitude: _longitude,
           altitude: int.parse(_altitudeController.text),
+          jumpType: _selectedJumpType,
           equipmentIds: _selectedEquipmentIds.toList(),
           checklistCompleted: _checklistItems.values.every((v) => v),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
@@ -367,6 +371,28 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Jump Type
+              DropdownButtonFormField<JumpType>(
+                value: _selectedJumpType,
+                decoration: const InputDecoration(
+                  labelText: 'Sprungtyp',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.flight_takeoff),
+                ),
+                items: JumpType.values.map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(type.displayName),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedJumpType = value;
+                  });
+                },
               ),
               const SizedBox(height: 16),
               

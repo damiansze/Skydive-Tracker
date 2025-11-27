@@ -49,6 +49,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       licenseType: _licenseTypeController.text.trim().isEmpty
           ? null
           : _licenseTypeController.text.trim(),
+      profilePictureUrl: existingProfile?.profilePictureUrl,
       totalJumps: existingProfile?.totalJumps ?? 0,
       createdAt: existingProfile?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
@@ -168,45 +169,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   enabled: _isEditing,
                 ),
-                const SizedBox(height: 24),
-                
-                // Statistics Card
-                if (profile != null)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Statistiken',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              Column(
-                                children: [
-                                  Text(
-                                    '${profile.totalJumps}',
-                                    style: const TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const Text('Gesamte Sprünge'),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),

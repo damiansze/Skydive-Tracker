@@ -19,6 +19,7 @@ class _AddEquipmentScreenState extends ConsumerState<AddEquipmentScreen> {
   final _manufacturerController = TextEditingController();
   final _modelController = TextEditingController();
   final _serialNumberController = TextEditingController();
+  final _reminderController = TextEditingController();
   final _notesController = TextEditingController();
   
   EquipmentType _selectedType = EquipmentType.OTHER;
@@ -40,6 +41,7 @@ class _AddEquipmentScreenState extends ConsumerState<AddEquipmentScreen> {
     _modelController.text = equipment.model ?? '';
     _serialNumberController.text = equipment.serialNumber ?? '';
     _purchaseDate = equipment.purchaseDate;
+    _reminderController.text = equipment.reminderAfterJumps?.toString() ?? '';
     _notesController.text = equipment.notes ?? '';
   }
 
@@ -79,6 +81,9 @@ class _AddEquipmentScreenState extends ConsumerState<AddEquipmentScreen> {
               ? null
               : _serialNumberController.text.trim(),
           purchaseDate: _purchaseDate,
+          reminderAfterJumps: _selectedType == EquipmentType.RESERVE && _reminderController.text.trim().isNotEmpty
+              ? int.tryParse(_reminderController.text.trim())
+              : null,
           notes: _notesController.text.trim().isEmpty
               ? null
               : _notesController.text.trim(),
@@ -99,6 +104,9 @@ class _AddEquipmentScreenState extends ConsumerState<AddEquipmentScreen> {
               ? null
               : _serialNumberController.text.trim(),
           purchaseDate: _purchaseDate,
+          reminderAfterJumps: _selectedType == EquipmentType.RESERVE && _reminderController.text.trim().isNotEmpty
+              ? int.tryParse(_reminderController.text.trim())
+              : null,
           notes: _notesController.text.trim().isEmpty
               ? null
               : _notesController.text.trim(),
@@ -124,6 +132,7 @@ class _AddEquipmentScreenState extends ConsumerState<AddEquipmentScreen> {
     _manufacturerController.dispose();
     _modelController.dispose();
     _serialNumberController.dispose();
+    _reminderController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -174,11 +183,38 @@ class _AddEquipmentScreenState extends ConsumerState<AddEquipmentScreen> {
                 if (value != null) {
                   setState(() {
                     _selectedType = value;
+                    if (value != EquipmentType.RESERVE) {
+                      _reminderController.clear();
+                    }
                   });
                 }
               },
             ),
             const SizedBox(height: 16),
+            
+            // Reminder for Reserve (only show if type is RESERVE)
+            if (_selectedType == EquipmentType.RESERVE) ...[
+              TextFormField(
+                controller: _reminderController,
+                decoration: const InputDecoration(
+                  labelText: 'Erinnerung nach X Sprüngen',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.notifications),
+                  helperText: 'Nach wie vielen Sprüngen soll an die Überprüfung erinnert werden?',
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (_selectedType == EquipmentType.RESERVE && value != null && value.trim().isNotEmpty) {
+                    final num = int.tryParse(value.trim());
+                    if (num == null || num <= 0) {
+                      return 'Bitte geben Sie eine gültige Anzahl ein';
+                    }
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
             
             // Manufacturer
             TextFormField(

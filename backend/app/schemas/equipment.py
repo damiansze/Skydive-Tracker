@@ -11,6 +11,7 @@ class EquipmentBase(BaseModel):
     model: Optional[str] = None
     serial_number: Optional[str] = None
     purchase_date: Optional[datetime] = None
+    reminder_after_jumps: Optional[int] = Field(None, ge=0)  # For reserve: remind after X jumps
     notes: Optional[str] = None
 
 class EquipmentCreate(EquipmentBase):
@@ -23,6 +24,7 @@ class EquipmentUpdate(BaseModel):
     model: Optional[str] = None
     serial_number: Optional[str] = None
     purchase_date: Optional[datetime] = None
+    reminder_after_jumps: Optional[int] = Field(None, ge=0)
     notes: Optional[str] = None
 
 class EquipmentResponse(EquipmentBase):

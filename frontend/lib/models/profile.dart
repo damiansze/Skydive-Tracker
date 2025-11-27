@@ -3,6 +3,7 @@ class Profile {
   final String name;
   final String? licenseNumber;
   final String? licenseType;
+  final String? profilePictureUrl;
   final int totalJumps;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -12,6 +13,7 @@ class Profile {
     required this.name,
     this.licenseNumber,
     this.licenseType,
+    this.profilePictureUrl,
     this.totalJumps = 0,
     required this.createdAt,
     required this.updatedAt,
@@ -23,6 +25,7 @@ class Profile {
       'name': name,
       'license_number': licenseNumber,
       'license_type': licenseType,
+      'profile_picture_url': profilePictureUrl,
       'total_jumps': totalJumps,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -35,6 +38,7 @@ class Profile {
       name: map['name'] as String,
       licenseNumber: map['license_number'] as String?,
       licenseType: map['license_type'] as String?,
+      profilePictureUrl: map['profile_picture_url'] as String?,
       totalJumps: map['total_jumps'] as int,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
@@ -46,6 +50,7 @@ class Profile {
     String? name,
     String? licenseNumber,
     String? licenseType,
+    String? profilePictureUrl,
     int? totalJumps,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -55,6 +60,7 @@ class Profile {
       name: name ?? this.name,
       licenseNumber: licenseNumber ?? this.licenseNumber,
       licenseType: licenseType ?? this.licenseType,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
       totalJumps: totalJumps ?? this.totalJumps,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

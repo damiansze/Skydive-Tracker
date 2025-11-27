@@ -6,6 +6,7 @@ class Equipment {
   final String? model;
   final String? serialNumber;
   final DateTime? purchaseDate;
+  final int? reminderAfterJumps;  // For reserve: remind after X jumps
   final String? notes;
   final DateTime? createdAt;
 
@@ -17,6 +18,7 @@ class Equipment {
     this.model,
     this.serialNumber,
     this.purchaseDate,
+    this.reminderAfterJumps,
     this.notes,
     this.createdAt,
   });
@@ -32,6 +34,7 @@ class Equipment {
       'model': model,
       'serial_number': serialNumber,
       'purchase_date': purchaseDate?.toIso8601String(),
+      'reminder_after_jumps': reminderAfterJumps,
       'notes': notes,
       'created_at': createdAt?.toIso8601String(),
     };
@@ -71,6 +74,7 @@ class Equipment {
       purchaseDate: map['purchase_date'] != null
           ? DateTime.parse(map['purchase_date'] as String)
           : null,
+      reminderAfterJumps: map['reminder_after_jumps'] as int?,
       notes: map['notes'] as String?,
       createdAt: map['created_at'] != null
           ? DateTime.parse(map['created_at'] as String)
@@ -86,6 +90,7 @@ class Equipment {
     String? model,
     String? serialNumber,
     DateTime? purchaseDate,
+    int? reminderAfterJumps,
     String? notes,
     DateTime? createdAt,
   }) {
@@ -97,6 +102,7 @@ class Equipment {
       model: model ?? this.model,
       serialNumber: serialNumber ?? this.serialNumber,
       purchaseDate: purchaseDate ?? this.purchaseDate,
+      reminderAfterJumps: reminderAfterJumps ?? this.reminderAfterJumps,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
     );

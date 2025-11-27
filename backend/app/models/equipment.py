@@ -24,5 +24,6 @@ class Equipment(Base):
     model = Column(String, nullable=True)
     serial_number = Column(String, nullable=True)
     purchase_date = Column(DateTime(timezone=True), nullable=True)
+    reminder_after_jumps = Column(Integer, nullable=True)  # For reserve parachute: remind after X jumps
     notes = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

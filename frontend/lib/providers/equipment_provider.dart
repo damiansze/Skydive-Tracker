@@ -41,6 +41,7 @@ class EquipmentNotifier extends StateNotifier<AsyncValue<List<Equipment>>> {
         model: equipment.model,
         serialNumber: equipment.serialNumber,
         purchaseDate: equipment.purchaseDate,
+        reminderAfterJumps: equipment.reminderAfterJumps,
         notes: equipment.notes,
       );
       await _loadEquipment();
