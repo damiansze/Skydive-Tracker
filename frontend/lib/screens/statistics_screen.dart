@@ -354,46 +354,24 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                               ),
                             ),
                             Expanded(
-                              child: locationsAsync.when(
-                                data: (locations) => Column(
-                                  children: [
-                                    Text(
-                                      '${locations.length}',
-                                      style: const TextStyle(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    '${jumps.map((j) => j.location).toSet().length}',
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    const SizedBox(height: 4),
-                                    const Text(
-                                      'Sprungplätze',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                                loading: () => const Column(
-                                  children: [
-                                    CircularProgressIndicator(),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Sprungplätze',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                                error: (_, __) => const Column(
-                                  children: [
-                                    Icon(Icons.error),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Sprungplätze',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _selectedLocationFilter != null
+                                        ? 'Sprungplatz'
+                                        : 'Sprungplätze',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
                               ),
                             ),
                           ],

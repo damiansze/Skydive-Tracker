@@ -89,5 +89,153 @@ List<Achievement> _calculateAchievements(List<Jump> jumps) {
   );
   achievements.add(firstBaseAchievement);
   
+  // 10 Jumps Achievement
+  final totalJumps = jumps.length;
+  final sortedJumps = jumps.toList()..sort((a, b) => a.date.compareTo(b.date));
+  final tenJumpsAchievement = Achievement(
+    type: AchievementType.TEN_JUMPS,
+    title: '10 Sprünge',
+    description: 'Du hast bereits 10 Sprünge absolviert!',
+    icon: '🎯',
+    unlocked: totalJumps >= 10,
+    unlockedAt: totalJumps >= 10 ? sortedJumps[9].date : null,
+    requirement: totalJumps < 10 
+        ? 'Noch ${10 - totalJumps} Sprünge benötigt (aktuell: $totalJumps)' 
+        : null,
+  );
+  achievements.add(tenJumpsAchievement);
+  
+  // 25 Jumps Achievement
+  final twentyFiveJumpsAchievement = Achievement(
+    type: AchievementType.TWENTY_FIVE_JUMPS,
+    title: '25 Sprünge',
+    description: 'Du hast bereits 25 Sprünge absolviert!',
+    icon: '🏆',
+    unlocked: totalJumps >= 25,
+    unlockedAt: totalJumps >= 25 ? sortedJumps[24].date : null,
+    requirement: totalJumps < 25 
+        ? 'Noch ${25 - totalJumps} Sprünge benötigt (aktuell: $totalJumps)' 
+        : null,
+  );
+  achievements.add(twentyFiveJumpsAchievement);
+  
+  // 50 Jumps Achievement
+  final fiftyJumpsAchievement = Achievement(
+    type: AchievementType.FIFTY_JUMPS,
+    title: '50 Sprünge',
+    description: 'Du hast bereits 50 Sprünge absolviert!',
+    icon: '💎',
+    unlocked: totalJumps >= 50,
+    unlockedAt: totalJumps >= 50 ? sortedJumps[49].date : null,
+    requirement: totalJumps < 50 
+        ? 'Noch ${50 - totalJumps} Sprünge benötigt (aktuell: $totalJumps)' 
+        : null,
+  );
+  achievements.add(fiftyJumpsAchievement);
+  
+  // 100 Jumps Achievement
+  final hundredJumpsAchievement = Achievement(
+    type: AchievementType.HUNDRED_JUMPS,
+    title: '100 Sprünge',
+    description: 'Du hast bereits 100 Sprünge absolviert!',
+    icon: '👑',
+    unlocked: totalJumps >= 100,
+    unlockedAt: totalJumps >= 100 ? sortedJumps[99].date : null,
+    requirement: totalJumps < 100 
+        ? 'Noch ${100 - totalJumps} Sprünge benötigt (aktuell: $totalJumps)' 
+        : null,
+  );
+  achievements.add(hundredJumpsAchievement);
+  
+  // 10 Locations Achievement
+  final tenLocationsAchievement = Achievement(
+    type: AchievementType.TEN_LOCATIONS,
+    title: '10 Sprungplätze',
+    description: 'Du hast von 10 verschiedenen Sprungplätzen gesprungen!',
+    icon: '🗺️',
+    unlocked: locationsCount >= 10,
+    unlockedAt: locationsCount >= 10 ? jumps.last.date : null,
+    requirement: locationsCount < 10 
+        ? 'Noch ${10 - locationsCount} verschiedene Sprungplätze benötigt (aktuell: $locationsCount)' 
+        : null,
+  );
+  achievements.add(tenLocationsAchievement);
+  
+  // First Tandem Achievement
+  final hasTandemJump = jumps.any((j) => j.jumpType == JumpType.TANDEM);
+  final firstTandemAchievement = Achievement(
+    type: AchievementType.FIRST_TANDEM,
+    title: 'Erstes Mal Tandem',
+    description: 'Du hast deinen ersten Tandem-Sprung gemacht!',
+    icon: '🤝',
+    unlocked: hasTandemJump,
+    unlockedAt: hasTandemJump 
+        ? jumps.firstWhere((j) => j.jumpType == JumpType.TANDEM).date 
+        : null,
+    requirement: !hasTandemJump ? 'Erfasse einen Sprung mit Sprungtyp "Tandem"' : null,
+  );
+  achievements.add(firstTandemAchievement);
+  
+  // First Solo Achievement
+  final hasSoloJump = jumps.any((j) => j.jumpType == JumpType.SOLO);
+  final firstSoloAchievement = Achievement(
+    type: AchievementType.FIRST_SOLO,
+    title: 'Erstes Mal Solo',
+    description: 'Du hast deinen ersten Solo-Sprung gemacht!',
+    icon: '🪂',
+    unlocked: hasSoloJump,
+    unlockedAt: hasSoloJump 
+        ? jumps.firstWhere((j) => j.jumpType == JumpType.SOLO).date 
+        : null,
+    requirement: !hasSoloJump ? 'Erfasse einen Sprung mit Sprungtyp "Solo"' : null,
+  );
+  achievements.add(firstSoloAchievement);
+  
+  // First Wingsuit Achievement
+  final hasWingsuitJump = jumps.any((j) => j.jumpType == JumpType.WINGSUIT);
+  final firstWingsuitAchievement = Achievement(
+    type: AchievementType.FIRST_WINGSUIT,
+    title: 'Erstes Mal Wingsuit',
+    description: 'Du hast deinen ersten Wingsuit-Sprung gemacht!',
+    icon: '🦅',
+    unlocked: hasWingsuitJump,
+    unlockedAt: hasWingsuitJump 
+        ? jumps.firstWhere((j) => j.jumpType == JumpType.WINGSUIT).date 
+        : null,
+    requirement: !hasWingsuitJump ? 'Erfasse einen Sprung mit Sprungtyp "Wingsuit"' : null,
+  );
+  achievements.add(firstWingsuitAchievement);
+  
+  // High Altitude Achievement (4000m+)
+  final highAltitudeJumps = jumps.where((j) => j.altitude >= 4000).toList();
+  final highAltitudeAchievement = Achievement(
+    type: AchievementType.HIGH_ALTITUDE,
+    title: 'Höhenflug',
+    description: 'Du hast einen Sprung von über 4000m Höhe gemacht!',
+    icon: '☁️',
+    unlocked: highAltitudeJumps.isNotEmpty,
+    unlockedAt: highAltitudeJumps.isNotEmpty ? highAltitudeJumps.first.date : null,
+    requirement: highAltitudeJumps.isEmpty 
+        ? 'Erfasse einen Sprung von mindestens 4000m Höhe' 
+        : null,
+  );
+  achievements.add(highAltitudeAchievement);
+  
+  // Equipment Master Achievement (used equipment in at least 5 jumps)
+  final jumpsWithEquipment = jumps.where((j) => j.equipmentIds.isNotEmpty).toList()
+    ..sort((a, b) => a.date.compareTo(b.date));
+  final equipmentMasterAchievement = Achievement(
+    type: AchievementType.EQUIPMENT_MASTER,
+    title: 'Equipment Meister',
+    description: 'Du hast in mindestens 5 Sprüngen Equipment verwendet!',
+    icon: '🎒',
+    unlocked: jumpsWithEquipment.length >= 5,
+    unlockedAt: jumpsWithEquipment.length >= 5 ? jumpsWithEquipment[4].date : null,
+    requirement: jumpsWithEquipment.length < 5 
+        ? 'Noch ${5 - jumpsWithEquipment.length} Sprünge mit Equipment benötigt (aktuell: ${jumpsWithEquipment.length})' 
+        : null,
+  );
+  achievements.add(equipmentMasterAchievement);
+  
   return achievements;
 }

@@ -53,11 +53,11 @@ async def upload_profile_picture(
     try:
         # Validate file type - check both content_type and filename extension
         valid_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
-        file_extension = Path(file.filename).suffix.lower() if file.filename else ''
+        file_extension_lower = Path(file.filename).suffix.lower() if file.filename else ''
         
         is_valid_image = (
             (file.content_type and file.content_type.startswith('image/')) or
-            file_extension in valid_extensions
+            file_extension_lower in valid_extensions
         )
         
         if not is_valid_image:
@@ -66,8 +66,8 @@ async def upload_profile_picture(
                 detail=f"File must be an image. Received: content_type={file.content_type}, filename={file.filename}"
             )
         
-        # Generate unique filename
-        file_extension = Path(file.filename).suffix if file.filename else '.jpg'
+        # Generate unique filename - use lowercase extension for consistency
+        file_extension = file_extension_lower if file_extension_lower else '.jpg'
         unique_filename = f"{uuid.uuid4()}{file_extension}"
         file_path = UPLOAD_DIR / unique_filename
         
