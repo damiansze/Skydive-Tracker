@@ -36,4 +36,23 @@ class ApiConfig {
       return 'http://localhost:8000/api/v1';
     }
   }
+
+  /// Build full URL for profile picture or other assets
+  /// Ensures consistent URL construction across platforms
+  static String buildAssetUrl(String? relativePath) {
+    if (relativePath == null || relativePath.isEmpty) {
+      return '';
+    }
+    
+    // If already a full URL, return as-is
+    if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+      return relativePath;
+    }
+    
+    // Build full URL from baseUrl
+    final baseWithoutApi = baseUrl.replaceAll('/api/v1', '');
+    // Ensure relativePath starts with /
+    final path = relativePath.startsWith('/') ? relativePath : '/$relativePath';
+    return '$baseWithoutApi$path';
+  }
 }

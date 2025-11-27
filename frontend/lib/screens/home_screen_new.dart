@@ -92,14 +92,14 @@ class HomeScreenNew extends ConsumerWidget {
             backgroundColor: Colors.white,
             backgroundImage: profile.profilePictureUrl != null
                 ? NetworkImage(
-                    profile.profilePictureUrl!.startsWith('http')
-                        ? profile.profilePictureUrl!
-                        : '${ApiConfig.baseUrl.replaceAll('/api/v1', '')}${profile.profilePictureUrl!}',
+                    ApiConfig.buildAssetUrl(profile.profilePictureUrl!),
+                    headers: const {'Cache-Control': 'no-cache'}, // Force reload if needed
                   )
                 : null,
             onBackgroundImageError: profile.profilePictureUrl != null
                 ? (exception, stackTrace) {
-                    // Handle image loading errors gracefully
+                    // Handle image loading errors gracefully - log for debugging
+                    debugPrint('Error loading profile picture: $exception');
                   }
                 : null,
             child: profile.profilePictureUrl == null

@@ -138,7 +138,9 @@ class ApiService {
       // Build full URL - relativeUrl is already /api/v1/profile/picture/{filename}
       // baseUrl is http://host:port/api/v1, so we need to replace /api/v1 with relativeUrl
       final baseWithoutApi = baseUrl.replaceAll('/api/v1', '');
-      return '$baseWithoutApi$relativeUrl';
+      final fullUrl = '$baseWithoutApi$relativeUrl';
+      // Return the full URL - this ensures consistent URL format across platforms
+      return fullUrl;
     } else {
       final errorBody = response.body;
       throw Exception('Failed to upload picture: ${response.statusCode} - $errorBody');
