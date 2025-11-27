@@ -1,14 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'screens/home_screen.dart';
 
 void main() {
-  // Initialize FFI for desktop platforms
-
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
-  
   runApp(const MyApp());
 }
 

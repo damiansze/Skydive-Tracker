@@ -1,8 +1,3 @@
-import 'dart:io';
-import 'package:sqflite/sqflite.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import '../models/jump.dart';
 import '../models/equipment.dart';
 import '../models/profile.dart';
@@ -12,313 +7,119 @@ class DatabaseService {
   factory DatabaseService() => _instance;
   DatabaseService._internal();
 
-  static Database? _database;
-
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
-  }
-
-  Future<Database> _initDatabase() async {
-    String path;
-    Directory dbDir;
-    
-    if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-      // For desktop platforms, use a directory in the user's home
-      String? homeDir;
-      if (Platform.isLinux || Platform.isMacOS) {
-        homeDir = Platform.environment['HOME'];
-      } else if (Platform.isWindows) {
-        homeDir = Platform.environment['USERPROFILE'] ?? 
-                  Platform.environment['APPDATA'];
-      }
-      
-      if (homeDir != null && homeDir.isNotEmpty) {
-        dbDir = Directory(join(homeDir, '.skydive_tracker'));
-        path = join(dbDir.path, 'skydive_tracker.db');
-      } else {
-        // Fallback to temp directory
-        final tempDir = Directory.systemTemp;
-        dbDir = Directory(join(tempDir.path, 'skydive_tracker'));
-        path = join(dbDir.path, 'skydive_tracker.db');
-      }
-    } else {
-      // For mobile platforms, use the standard database path
-      final dbPath = await getDatabasesPath();
-      dbDir = Directory(dbPath);
-      path = join(dbPath, 'skydive_tracker.db');
-    }
-
-    // Ensure directory exists
-    if (!await dbDir.exists()) {
-      try {
-        await dbDir.create(recursive: true);
-      } catch (e) {
-        // If creation fails, try using a temp directory (desktop only)
-        if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-          final tempDir = Directory.systemTemp;
-          dbDir = Directory(join(tempDir.path, 'skydive_tracker'));
-          path = join(dbDir.path, 'skydive_tracker.db');
-          if (!await dbDir.exists()) {
-            await dbDir.create(recursive: true);
-          }
-        } else {
-          rethrow;
-        }
-      }
-    }
-
-    try {
-      return await openDatabase(
-        path,
-        version: 1,
-        onCreate: _onCreate,
-        onOpen: (db) async {
-          // Enable foreign keys
-          await db.execute('PRAGMA foreign_keys = ON');
-        },
-      );
-    } catch (e) {
-      // If opening fails, try to delete and recreate
-      final dbFile = File(path);
-      if (await dbFile.exists()) {
-        try {
-          await dbFile.delete();
-        } catch (_) {
-          // Ignore deletion errors
-        }
-      }
-      return await openDatabase(
-        path,
-        version: 1,
-        onCreate: _onCreate,
-        onOpen: (db) async {
-          // Enable foreign keys
-          await db.execute('PRAGMA foreign_keys = ON');
-        },
-      );
-    }
-  }
-
-  Future<void> _onCreate(Database db, int version) async {
-    // Profile table
-    await db.execute('''
-      CREATE TABLE profiles (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        license_number TEXT,
-        license_type TEXT,
-        total_jumps INTEGER DEFAULT 0,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )
-    ''');
-
-    // Equipment table
-    await db.execute('''
-      CREATE TABLE equipment (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL,
-        manufacturer TEXT,
-        model TEXT,
-        serial_number TEXT,
-        purchase_date TEXT,
-        notes TEXT
-      )
-    ''');
-
-    // Jumps table
-    await db.execute('''
-      CREATE TABLE jumps (
-        id TEXT PRIMARY KEY,
-        date TEXT NOT NULL,
-        location TEXT NOT NULL,
-        latitude REAL,
-        longitude REAL,
-        altitude INTEGER NOT NULL,
-        checklist_completed INTEGER DEFAULT 0,
-        notes TEXT,
-        created_at TEXT NOT NULL
-      )
-    ''');
-
-    // Jump-Equipment association table
-    await db.execute('''
-      CREATE TABLE jump_equipment (
-        jump_id TEXT NOT NULL,
-        equipment_id TEXT NOT NULL,
-        PRIMARY KEY (jump_id, equipment_id),
-        FOREIGN KEY (jump_id) REFERENCES jumps(id) ON DELETE CASCADE,
-        FOREIGN KEY (equipment_id) REFERENCES equipment(id) ON DELETE CASCADE
-      )
-    ''');
-
-    // Indexes
-    await db.execute('CREATE INDEX idx_jumps_date ON jumps(date DESC)');
-    await db.execute('CREATE INDEX idx_jumps_location ON jumps(location)');
-  }
+  // In-memory storage
+  Profile? _profile;
+  final List<Equipment> _equipment = [];
+  final List<Jump> _jumps = [];
+  final Map<String, List<String>> _jumpEquipment = {}; // jump_id -> equipment_ids
 
   // Profile methods
   Future<void> insertProfile(Profile profile) async {
-    final db = await database;
-    await db.insert('profiles', profile.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    _profile = profile;
   }
 
   Future<Profile?> getProfile() async {
-    final db = await database;
-    final maps = await db.query('profiles', limit: 1);
-    if (maps.isEmpty) return null;
-    return Profile.fromMap(maps.first);
+    return _profile;
   }
 
   Future<void> updateProfile(Profile profile) async {
-    final db = await database;
-    await db.update('profiles', profile.toMap(),
-        where: 'id = ?', whereArgs: [profile.id]);
+    _profile = profile;
   }
 
   // Equipment methods
   Future<String> insertEquipment(Equipment equipment) async {
-    final db = await database;
-    await db.insert('equipment', equipment.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    _equipment.add(equipment);
     return equipment.id;
   }
 
   Future<List<Equipment>> getAllEquipment() async {
-    final db = await database;
-    final maps = await db.query('equipment', orderBy: 'name ASC');
-    return maps.map((map) => Equipment.fromMap(map)).toList();
+    return List.from(_equipment);
   }
 
   Future<Equipment?> getEquipmentById(String id) async {
-    final db = await database;
-    final maps = await db.query('equipment', where: 'id = ?', whereArgs: [id]);
-    if (maps.isEmpty) return null;
-    return Equipment.fromMap(maps.first);
+    try {
+      return _equipment.firstWhere((e) => e.id == id);
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<void> updateEquipment(Equipment equipment) async {
-    final db = await database;
-    await db.update('equipment', equipment.toMap(),
-        where: 'id = ?', whereArgs: [equipment.id]);
+    final index = _equipment.indexWhere((e) => e.id == equipment.id);
+    if (index != -1) {
+      _equipment[index] = equipment;
+    }
   }
 
   Future<void> deleteEquipment(String id) async {
-    final db = await database;
-    await db.delete('equipment', where: 'id = ?', whereArgs: [id]);
+    _equipment.removeWhere((e) => e.id == id);
+    // Remove from jump associations
+    _jumpEquipment.forEach((jumpId, equipmentIds) {
+      equipmentIds.remove(id);
+    });
   }
 
   // Jump methods
   Future<String> insertJump(Jump jump) async {
-    final db = await database;
-    await db.insert('jumps', jump.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
-    
-    // Insert equipment associations
-    for (String equipmentId in jump.equipmentIds) {
-      await db.insert('jump_equipment', {
-        'jump_id': jump.id,
-        'equipment_id': equipmentId,
-      });
-    }
-    
+    _jumps.add(jump);
+    _jumpEquipment[jump.id] = List.from(jump.equipmentIds);
     return jump.id;
   }
 
   Future<List<Jump>> getAllJumps({String? locationFilter}) async {
-    final db = await database;
-    List<Map<String, dynamic>> maps;
+    List<Jump> jumps = List.from(_jumps);
     
     if (locationFilter != null && locationFilter.isNotEmpty) {
-      maps = await db.query(
-        'jumps',
-        where: 'location LIKE ?',
-        whereArgs: ['%$locationFilter%'],
-        orderBy: 'date DESC',
-      );
-    } else {
-      maps = await db.query('jumps', orderBy: 'date DESC');
+      jumps = jumps.where((j) => 
+        j.location.toLowerCase().contains(locationFilter.toLowerCase())
+      ).toList();
     }
     
-    List<Jump> jumps = maps.map((map) => Jump.fromMap(map)).toList();
+    // Sort by date descending
+    jumps.sort((a, b) => b.date.compareTo(a.date));
     
     // Load equipment IDs for each jump
-    for (int i = 0; i < jumps.length; i++) {
-      final equipmentMaps = await db.query(
-        'jump_equipment',
-        where: 'jump_id = ?',
-        whereArgs: [jumps[i].id],
-      );
-      jumps[i] = jumps[i].copyWith(
-        equipmentIds: equipmentMaps.map((e) => e['equipment_id'] as String).toList(),
-      );
-    }
-    
-    return jumps;
+    return jumps.map((jump) {
+      final equipmentIds = _jumpEquipment[jump.id] ?? [];
+      return jump.copyWith(equipmentIds: equipmentIds);
+    }).toList();
   }
 
   Future<Jump?> getJumpById(String id) async {
-    final db = await database;
-    final maps = await db.query('jumps', where: 'id = ?', whereArgs: [id]);
-    if (maps.isEmpty) return null;
-    
-    Jump jump = Jump.fromMap(maps.first);
-    
-    // Load equipment IDs
-    final equipmentMaps = await db.query(
-      'jump_equipment',
-      where: 'jump_id = ?',
-      whereArgs: [id],
-    );
-    jump = jump.copyWith(
-      equipmentIds: equipmentMaps.map((e) => e['equipment_id'] as String).toList(),
-    );
-    
-    return jump;
+    try {
+      final jump = _jumps.firstWhere((j) => j.id == id);
+      final equipmentIds = _jumpEquipment[jump.id] ?? [];
+      return jump.copyWith(equipmentIds: equipmentIds);
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<void> updateJump(Jump jump) async {
-    final db = await database;
-    await db.update('jumps', jump.toMap(),
-        where: 'id = ?', whereArgs: [jump.id]);
-    
-    // Update equipment associations
-    await db.delete('jump_equipment', where: 'jump_id = ?', whereArgs: [jump.id]);
-    for (String equipmentId in jump.equipmentIds) {
-      await db.insert('jump_equipment', {
-        'jump_id': jump.id,
-        'equipment_id': equipmentId,
-      });
+    final index = _jumps.indexWhere((j) => j.id == jump.id);
+    if (index != -1) {
+      _jumps[index] = jump;
+      _jumpEquipment[jump.id] = List.from(jump.equipmentIds);
     }
   }
 
   Future<void> deleteJump(String id) async {
-    final db = await database;
-    await db.delete('jump_equipment', where: 'jump_id = ?', whereArgs: [id]);
-    await db.delete('jumps', where: 'id = ?', whereArgs: [id]);
+    _jumps.removeWhere((j) => j.id == id);
+    _jumpEquipment.remove(id);
   }
 
   Future<int> getTotalJumps({String? locationFilter}) async {
-    final db = await database;
     if (locationFilter != null && locationFilter.isNotEmpty) {
-      final result = await db.rawQuery(
-        'SELECT COUNT(*) as count FROM jumps WHERE location LIKE ?',
-        ['%$locationFilter%'],
-      );
-      return Sqflite.firstIntValue(result) ?? 0;
-    } else {
-      final result = await db.rawQuery('SELECT COUNT(*) as count FROM jumps');
-      return Sqflite.firstIntValue(result) ?? 0;
+      return _jumps.where((j) => 
+        j.location.toLowerCase().contains(locationFilter.toLowerCase())
+      ).length;
     }
+    return _jumps.length;
   }
 
   Future<List<String>> getDistinctLocations() async {
-    final db = await database;
-    final maps = await db.rawQuery('SELECT DISTINCT location FROM jumps ORDER BY location');
-    return maps.map((map) => map['location'] as String).toList();
+    final locations = _jumps.map((j) => j.location).toSet().toList();
+    locations.sort();
+    return locations;
   }
 }
