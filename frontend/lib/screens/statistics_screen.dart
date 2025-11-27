@@ -13,21 +13,52 @@ final distinctLocationsProvider = FutureProvider<List<String>>((ref) async {
   return await service.getDistinctLocations();
 });
 
-final totalJumpsProvider = FutureProvider.family<int, Map<String, String?>>((ref, filters) async {
+// Helper class for filter keys to ensure stable comparison
+class StatisticsFilters {
+  final String? location;
+  final String? jumpType;
+  final String? jumpMethod;
+  
+  StatisticsFilters({
+    this.location,
+    this.jumpType,
+    this.jumpMethod,
+  });
+  
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StatisticsFilters &&
+          runtimeType == other.runtimeType &&
+          location == other.location &&
+          jumpType == other.jumpType &&
+          jumpMethod == other.jumpMethod;
+  
+  @override
+  int get hashCode => location.hashCode ^ jumpType.hashCode ^ jumpMethod.hashCode;
+  
+  Map<String, String?> toMap() => {
+    'location': location,
+    'jumpType': jumpType,
+    'jumpMethod': jumpMethod,
+  };
+}
+
+final totalJumpsProvider = FutureProvider.family<int, StatisticsFilters>((ref, filters) async {
   final service = ref.read(jumpServiceProvider);
   return await service.getTotalJumps(
-    locationFilter: filters['location'],
-    jumpTypeFilter: filters['jumpType'],
-    jumpMethodFilter: filters['jumpMethod'],
+    locationFilter: filters.location,
+    jumpTypeFilter: filters.jumpType,
+    jumpMethodFilter: filters.jumpMethod,
   );
 });
 
-final statisticsSummaryProvider = FutureProvider.family<Map<String, dynamic>, Map<String, String?>>((ref, filters) async {
+final statisticsSummaryProvider = FutureProvider.family<Map<String, dynamic>, StatisticsFilters>((ref, filters) async {
   final api = ref.read(apiServiceProvider);
   return await api.getStatisticsSummary(
-    locationFilter: filters['location'],
-    jumpTypeFilter: filters['jumpType'],
-    jumpMethodFilter: filters['jumpMethod'],
+    locationFilter: filters.location,
+    jumpTypeFilter: filters.jumpType,
+    jumpMethodFilter: filters.jumpMethod,
   );
 });
 
@@ -43,12 +74,23 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   JumpType? _selectedJumpTypeFilter;
   JumpMethod? _selectedJumpMethodFilter;
   final MapController _mapController = MapController();
+  StatisticsFilters? _cachedFilters;
   
-  Map<String, String?> get _filters => {
-    'location': _selectedLocationFilter,
-    'jumpType': _selectedJumpTypeFilter?.toString().split('.').last.toLowerCase(),
-    'jumpMethod': _selectedJumpMethodFilter?.toString().split('.').last.toLowerCase(),
-  };
+  StatisticsFilters get _filters {
+    final newFilters = StatisticsFilters(
+      location: _selectedLocationFilter,
+      jumpType: _selectedJumpTypeFilter?.toString().split('.').last.toLowerCase(),
+      jumpMethod: _selectedJumpMethodFilter?.toString().split('.').last.toLowerCase(),
+    );
+    
+    // Use cached filters if they're the same (stable reference for Riverpod)
+    if (_cachedFilters != null && _cachedFilters == newFilters) {
+      return _cachedFilters!;
+    }
+    
+    _cachedFilters = newFilters;
+    return _cachedFilters!;
+  }
   
   void _centerMapOnLocations(List<dynamic> locationsWithCoords) {
     if (locationsWithCoords.isEmpty) return;
@@ -69,29 +111,26 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   void _onLocationFilterChanged(String? location) {
     setState(() {
       _selectedLocationFilter = location;
+      _cachedFilters = null; // Reset cache to create new filter object
     });
     ref.read(jumpNotifierProvider.notifier).setLocationFilter(location);
-    // Invalidate providers to refresh statistics
-    ref.invalidate(totalJumpsProvider);
-    ref.invalidate(statisticsSummaryProvider);
+    // Family provider will automatically reload with new filter key
   }
   
   void _onJumpTypeFilterChanged(JumpType? type) {
     setState(() {
       _selectedJumpTypeFilter = _selectedJumpTypeFilter == type ? null : type;
+      _cachedFilters = null; // Reset cache to create new filter object
     });
-    // Invalidate providers to refresh statistics
-    ref.invalidate(totalJumpsProvider);
-    ref.invalidate(statisticsSummaryProvider);
+    // Family provider will automatically reload with new filter key
   }
   
   void _onJumpMethodFilterChanged(JumpMethod? method) {
     setState(() {
       _selectedJumpMethodFilter = _selectedJumpMethodFilter == method ? null : method;
+      _cachedFilters = null; // Reset cache to create new filter object
     });
-    // Invalidate providers to refresh statistics
-    ref.invalidate(totalJumpsProvider);
-    ref.invalidate(statisticsSummaryProvider);
+    // Family provider will automatically reload with new filter key
   }
 
   Future<void> _editJump(Jump jump) async {
@@ -368,12 +407,26 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                     }
                     
                     // Calculate center and bounds
-                    final points = locationsWithCoords.map((loc) {
-                      return LatLng(
-                        loc['latitude'] as double,
-                        loc['longitude'] as double,
-                      );
-                    }).toList();
+                    final points = <LatLng>[];
+                    for (final loc in locationsWithCoords) {
+                      try {
+                        final lat = loc['latitude'];
+                        final lng = loc['longitude'];
+                        if (lat != null && lng != null) {
+                          points.add(LatLng(
+                            (lat as num).toDouble(),
+                            (lng as num).toDouble(),
+                          ));
+                        }
+                      } catch (e) {
+                        // Skip invalid coordinates
+                        continue;
+                      }
+                    }
+                    
+                    if (points.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
                     
                     double avgLat = points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length;
                     double avgLng = points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length;
@@ -391,6 +444,12 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                 initialZoom: 5.0,
                                 minZoom: 3.0,
                                 maxZoom: 18.0,
+                                onMapReady: () {
+                                  // Center map after it's ready
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    _centerMapOnLocations(locationsWithCoords);
+                                  });
+                                },
                               ),
                               children: [
                                 TileLayer(
@@ -403,45 +462,51 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                 ),
                                 MarkerLayer(
                                   markers: locationsWithCoords.map((loc) {
-                                    final count = loc['count'] as int? ?? 1;
-                                    return Marker(
-                                      point: LatLng(
-                                        loc['latitude'] as double,
-                                        loc['longitude'] as double,
-                                      ),
-                                      width: count > 1 ? 50 : 40,
-                                      height: count > 1 ? 50 : 40,
-                                      child: Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.paragliding,
-                                            color: Colors.red,
-                                            size: count > 1 ? 35 : 30,
-                                          ),
-                                          if (count > 1)
-                                            Positioned(
-                                              bottom: 0,
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.red,
-                                                  borderRadius: BorderRadius.circular(10),
-                                                ),
-                                                child: Text(
-                                                  '$count',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
+                                    try {
+                                      final count = loc['count'] as int? ?? 1;
+                                      final lat = loc['latitude'] as num?;
+                                      final lng = loc['longitude'] as num?;
+                                      if (lat == null || lng == null) {
+                                        return null;
+                                      }
+                                      return Marker(
+                                        point: LatLng(lat.toDouble(), lng.toDouble()),
+                                        width: count > 1 ? 50 : 40,
+                                        height: count > 1 ? 50 : 40,
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.paragliding,
+                                              color: Colors.red,
+                                              size: count > 1 ? 35 : 30,
+                                            ),
+                                            if (count > 1)
+                                              Positioned(
+                                                bottom: 0,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red,
+                                                    borderRadius: BorderRadius.circular(10),
+                                                  ),
+                                                  child: Text(
+                                                    '$count',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                        ],
-                                      ),
-                                    );
-                                  }).toList(),
+                                          ],
+                                        ),
+                                      );
+                                    } catch (e) {
+                                      return null;
+                                    }
+                                  }).whereType<Marker>().toList(),
                                 ),
                               ],
                             ),
@@ -461,8 +526,29 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                       ),
                     );
                   },
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                  loading: () => const Card(
+                    margin: EdgeInsets.all(16.0),
+                    child: SizedBox(
+                      height: 300,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+                  error: (error, stack) => Card(
+                    margin: const EdgeInsets.all(16.0),
+                    child: SizedBox(
+                      height: 300,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                            const SizedBox(height: 8),
+                            Text('Fehler beim Laden der Karte: $error'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               
               // Filter

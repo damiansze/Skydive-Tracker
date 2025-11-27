@@ -292,10 +292,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
       }
 
       if (mounted) {
-        // Refresh statistics providers
-        ref.invalidate(distinctLocationsProvider);
-        ref.invalidate(totalJumpsProvider);
-        ref.invalidate(statisticsSummaryProvider);
+        // Statistics providers are automatically invalidated by JumpNotifier
         Navigator.of(context).pop(true);
       }
     } catch (e) {

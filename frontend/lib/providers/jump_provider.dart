@@ -64,6 +64,10 @@ class JumpNotifier extends StateNotifier<AsyncValue<List<Jump>>> {
       await _loadJumps();
       // Refresh profile to update total jumps count
       _ref.read(profileNotifierProvider.notifier).refresh();
+      // Invalidate statistics providers to refresh data
+      _ref.invalidate(distinctLocationsProvider);
+      _ref.invalidate(totalJumpsProvider);
+      _ref.invalidate(statisticsSummaryProvider);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }
@@ -73,6 +77,10 @@ class JumpNotifier extends StateNotifier<AsyncValue<List<Jump>>> {
     try {
       await _service.updateJump(jump);
       await _loadJumps();
+      // Invalidate statistics providers to refresh data
+      _ref.invalidate(distinctLocationsProvider);
+      _ref.invalidate(totalJumpsProvider);
+      _ref.invalidate(statisticsSummaryProvider);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }
@@ -84,6 +92,10 @@ class JumpNotifier extends StateNotifier<AsyncValue<List<Jump>>> {
       await _loadJumps();
       // Refresh profile to update total jumps count
       _ref.read(profileNotifierProvider.notifier).refresh();
+      // Invalidate statistics providers to refresh data
+      _ref.invalidate(distinctLocationsProvider);
+      _ref.invalidate(totalJumpsProvider);
+      _ref.invalidate(statisticsSummaryProvider);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }
