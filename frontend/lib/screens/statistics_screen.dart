@@ -5,9 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import '../models/jump.dart';
 import '../providers/jump_provider.dart';
-import '../services/jump_service.dart';
 import '../providers/database_provider.dart';
-import '../services/api_service.dart';
 import 'add_jump_screen.dart';
 
 final distinctLocationsProvider = FutureProvider<List<String>>((ref) async {
@@ -338,7 +336,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: locationsAsync.when(
                   data: (locations) => DropdownButtonFormField<String>(
-                    value: _selectedLocationFilter,
+                    initialValue: _selectedLocationFilter,
                     decoration: const InputDecoration(
                       labelText: 'Nach Ort filtern',
                       border: OutlineInputBorder(),
@@ -474,7 +472,8 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                 }).toList(),
               const SizedBox(height: 16),
             ],
-          );
+          ),
+        );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => SingleChildScrollView(
