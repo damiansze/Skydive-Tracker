@@ -13,7 +13,6 @@ class DatabaseService {
   DatabaseService._internal();
 
   static Database? _database;
-  static bool _initialized = false;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -22,30 +21,64 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    // Initialize FFI for desktop platforms
-    if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-      if (!_initialized) {
-        sqfliteFfiInit();
-        databaseFactory = databaseFactoryFfi;
-        _initialized = true;
-      }
-    }
 
     String path;
+    Directory dbDir;
+    
     if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
       // For desktop platforms, use a local directory
       final directory = await getApplicationDocumentsDirectory();
+      dbDir = Directory(directory.path);
       path = join(directory.path, 'skydive_tracker.db');
     } else {
       // For mobile platforms, use the standard database path
-      path = join(await getDatabasesPath(), 'skydive_tracker.db');
+      final dbPath = await getDatabasesPath();
+      dbDir = Directory(dbPath);
+      path = join(dbPath, 'skydive_tracker.db');
     }
 
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _onCreate,
-    );
+    // Ensure directory exists
+    if (!await dbDir.exists()) {
+      await dbDir.create(recursive: true);
+    }
+
+    // Ensure parent directory of the file exists
+    final file = File(path);
+    final parentDir = file.parent;
+    if (!await parentDir.exists()) {
+      await parentDir.create(recursive: true);
+    }
+
+    try {
+      return await openDatabase(
+        path,
+        version: 1,
+        onCreate: _onCreate,
+        onOpen: (db) async {
+          // Enable foreign keys
+          await db.execute('PRAGMA foreign_keys = ON');
+        },
+      );
+    } catch (e) {
+      // If opening fails, try to delete and recreate
+      final dbFile = File(path);
+      if (await dbFile.exists()) {
+        try {
+          await dbFile.delete();
+        } catch (_) {
+          // Ignore deletion errors
+        }
+      }
+      return await openDatabase(
+        path,
+        version: 1,
+        onCreate: _onCreate,
+        onOpen: (db) async {
+          // Enable foreign keys
+          await db.execute('PRAGMA foreign_keys = ON');
+        },
+      );
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
