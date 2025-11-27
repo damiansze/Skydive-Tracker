@@ -1,29 +1,49 @@
 """Jump service for business logic"""
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from typing import List, Optional
 from app.models.jump import Jump
 from app.models.equipment import Equipment
+from app.models.profile import Profile
 from app.schemas.jump import JumpCreate, JumpUpdate
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 class JumpService:
     @staticmethod
     def get_all(db: Session) -> List[Jump]:
         """Get all jumps"""
-        return db.query(Jump).order_by(Jump.date.desc()).all()
+        logger.info("Fetching all jumps", extra={"event": "jump_get_all"})
+        jumps = db.query(Jump).options(joinedload(Jump.equipment)).order_by(Jump.date.desc()).all()
+        logger.info("Retrieved jumps", extra={"event": "jump_get_all_success", "count": len(jumps)})
+        return jumps
 
     @staticmethod
     def get_by_id(db: Session, jump_id: str) -> Optional[Jump]:
         """Get jump by ID"""
-        return db.query(Jump).filter(Jump.id == jump_id).first()
+        return db.query(Jump).options(joinedload(Jump.equipment)).filter(Jump.id == jump_id).first()
 
     @staticmethod
     def create(db: Session, jump_data: JumpCreate) -> Jump:
         """Create a new jump"""
+        logger.info(
+            "Creating jump",
+            extra={
+                "event": "jump_create",
+                "location": jump_data.location,
+                "altitude": jump_data.altitude,
+            }
+        )
         jump = Jump(
             date=jump_data.date,
             location=jump_data.location,
+            latitude=jump_data.latitude,
+            longitude=jump_data.longitude,
             altitude=jump_data.altitude,
-            checklist_completed=jump_data.checklist_completed,
+            jump_type=jump_data.jump_type,
+            jump_method=jump_data.jump_method,
+            # checklist_completed is deprecated and ignored - always defaults to False
             notes=jump_data.notes,
         )
         
@@ -37,16 +57,32 @@ class JumpService:
         db.add(jump)
         db.commit()
         db.refresh(jump)
+        # Ensure equipment relationship is loaded
+        _ = jump.equipment  # Trigger lazy load if needed
+        
+        # Update profile total jumps count
+        profile = db.query(Profile).first()
+        if profile:
+            total_jumps = db.query(func.count(Jump.id)).scalar() or 0
+            profile.total_jumps = total_jumps
+            db.commit()
+            db.refresh(profile)
+            logger.info("Profile total jumps updated", extra={"event": "profile_update_total_jumps", "total_jumps": total_jumps})
+        
+        logger.info("Jump created successfully", extra={"event": "jump_create_success", "jump_id": jump.id})
         return jump
 
     @staticmethod
     def update(db: Session, jump_id: str, jump_update: JumpUpdate) -> Optional[Jump]:
         """Update a jump"""
-        jump = db.query(Jump).filter(Jump.id == jump_id).first()
+        jump = db.query(Jump).options(joinedload(Jump.equipment)).filter(Jump.id == jump_id).first()
         if not jump:
             return None
         
         update_data = jump_update.dict(exclude_unset=True)
+        
+        # Remove deprecated fields that should not be updated
+        update_data.pop("checklist_completed", None)  # Deprecated - always ignore
         
         # Handle equipment update separately
         if "equipment_ids" in update_data:
@@ -61,14 +97,29 @@ class JumpService:
         
         db.commit()
         db.refresh(jump)
+        # Ensure equipment relationship is loaded
+        _ = jump.equipment  # Trigger lazy load if needed
         return jump
 
     @staticmethod
     def delete(db: Session, jump_id: str) -> bool:
         """Delete a jump"""
+        logger.info("Deleting jump", extra={"event": "jump_delete", "jump_id": jump_id})
         jump = db.query(Jump).filter(Jump.id == jump_id).first()
         if not jump:
+            logger.warning("Jump not found for deletion", extra={"event": "jump_delete_not_found", "jump_id": jump_id})
             return False
         db.delete(jump)
         db.commit()
+        
+        # Update profile total jumps count
+        profile = db.query(Profile).first()
+        if profile:
+            total_jumps = db.query(func.count(Jump.id)).scalar() or 0
+            profile.total_jumps = total_jumps
+            db.commit()
+            db.refresh(profile)
+            logger.info("Profile total jumps updated", extra={"event": "profile_update_total_jumps", "total_jumps": total_jumps})
+        
+        logger.info("Jump deleted successfully", extra={"event": "jump_delete_success", "jump_id": jump_id})
         return True

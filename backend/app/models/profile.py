@@ -11,6 +11,7 @@ class Profile(Base):
     name = Column(String, nullable=False)
     license_number = Column(String, nullable=True)
     license_type = Column(String, nullable=True)
+    profile_picture_url = Column(String, nullable=True)  # URL/path to profile picture
     total_jumps = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

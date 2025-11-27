@@ -9,12 +9,13 @@ def test_create_jump(client):
         "location": "Test Dropzone",
         "altitude": 14000,
         "equipment_ids": [],
-        "checklist_completed": True,
     }
     response = client.post("/api/v1/jumps/", json=jump_data)
     assert response.status_code == 201
     assert response.json()["location"] == "Test Dropzone"
     assert response.json()["altitude"] == 14000
+    # Ensure checklist_completed is not in response
+    assert "checklist_completed" not in response.json()
 
 def test_get_jumps(client):
     """Test getting all jumps"""

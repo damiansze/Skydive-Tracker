@@ -1,9 +1,25 @@
 """Jump database model"""
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, Table
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, Table, Float, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.database import Base
 import uuid
+import enum
+
+class JumpType(str, enum.Enum):
+    TANDEM = "tandem"
+    SOLO = "solo"
+    AFF = "aff"  # Accelerated Freefall
+    STATIC_LINE = "static_line"
+    WINGSUIT = "wingsuit"
+    OTHER = "other"
+
+class JumpMethod(str, enum.Enum):
+    PLANE = "plane"
+    HELICOPTER = "helicopter"
+    BASE = "base"  # Base jumping (cliff, building, etc.)
+    BALLOON = "balloon"
+    OTHER = "other"
 
 # Association table for many-to-many relationship between jumps and equipment
 jump_equipment = Table(
@@ -19,10 +35,19 @@ class Jump(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     date = Column(DateTime(timezone=True), nullable=False)
     location = Column(String, nullable=False)
+    latitude = Column(Float, nullable=True)  # GPS latitude
+    longitude = Column(Float, nullable=True)  # GPS longitude
     altitude = Column(Integer, nullable=False)  # in feet or meters
+    jump_type = Column(Enum(JumpType), nullable=True)  # Tandem, Solo, AFF, etc.
+    jump_method = Column(Enum(JumpMethod), nullable=True)  # Plane, Helicopter, BASE, etc.
     checklist_completed = Column(Boolean, default=False)
     notes = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
     equipment = relationship("Equipment", secondary=jump_equipment, backref="jumps")
+    
+    @property
+    def equipment_ids(self):
+        """Return list of equipment IDs"""
+        return [eq.id for eq in self.equipment] if self.equipment else []

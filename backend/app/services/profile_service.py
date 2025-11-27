@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from app.models.profile import Profile
 from app.schemas.profile import ProfileBase, ProfileUpdate
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 class ProfileService:
     @staticmethod
@@ -20,6 +23,8 @@ class ProfileService:
             profile.name = profile_data.name
             profile.license_number = profile_data.license_number
             profile.license_type = profile_data.license_type
+            if profile_data.profile_picture_url is not None:
+                profile.profile_picture_url = profile_data.profile_picture_url
         else:
             # Create new profile
             profile = Profile(**profile_data.dict())
