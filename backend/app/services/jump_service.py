@@ -22,6 +22,8 @@ class JumpService:
         jump = Jump(
             date=jump_data.date,
             location=jump_data.location,
+            latitude=jump_data.latitude,
+            longitude=jump_data.longitude,
             altitude=jump_data.altitude,
             checklist_completed=jump_data.checklist_completed,
             notes=jump_data.notes,

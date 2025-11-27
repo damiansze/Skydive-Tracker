@@ -6,6 +6,8 @@ from typing import Optional, List
 class JumpBase(BaseModel):
     date: datetime
     location: str = Field(..., min_length=1)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     altitude: int = Field(..., gt=0)
     equipment_ids: List[str] = []
     checklist_completed: bool = False
@@ -17,6 +19,8 @@ class JumpCreate(JumpBase):
 class JumpUpdate(BaseModel):
     date: Optional[datetime] = None
     location: Optional[str] = Field(None, min_length=1)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     altitude: Optional[int] = Field(None, gt=0)
     equipment_ids: Optional[List[str]] = None
     checklist_completed: Optional[bool] = None

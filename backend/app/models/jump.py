@@ -1,5 +1,5 @@
 """Jump database model"""
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, Table
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, Table, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.database import Base
@@ -19,6 +19,8 @@ class Jump(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     date = Column(DateTime(timezone=True), nullable=False)
     location = Column(String, nullable=False)
+    latitude = Column(Float, nullable=True)  # GPS latitude
+    longitude = Column(Float, nullable=True)  # GPS longitude
     altitude = Column(Integer, nullable=False)  # in feet or meters
     checklist_completed = Column(Boolean, default=False)
     notes = Column(String, nullable=True)
