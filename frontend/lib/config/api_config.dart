@@ -39,20 +39,39 @@ class ApiConfig {
 
   /// Build full URL for profile picture or other assets
   /// Ensures consistent URL construction across platforms
+  /// Always constructs URL dynamically based on current platform
   static String buildAssetUrl(String? relativePath) {
     if (relativePath == null || relativePath.isEmpty) {
       return '';
     }
     
-    // If already a full URL, return as-is
+    // If already a full URL, extract the relative path and rebuild with current platform's baseUrl
+    // This fixes the issue where iOS uploads create URLs with localhost that don't work on Android
+    String actualRelativePath = relativePath;
     if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
-      return relativePath;
+      // Extract the path part (everything after the domain)
+      try {
+        final uri = Uri.parse(relativePath);
+        actualRelativePath = uri.path;
+        // If path doesn't start with /api/v1/profile/picture, it might be malformed
+        if (!actualRelativePath.startsWith('/api/v1/')) {
+          // Try to extract just the filename and reconstruct
+          final filename = uri.pathSegments.last;
+          actualRelativePath = '/api/v1/profile/picture/$filename';
+        }
+      } catch (e) {
+        // If parsing fails, try to extract path manually
+        final match = RegExp(r'/(api/v1/.*)$').firstMatch(relativePath);
+        if (match != null) {
+          actualRelativePath = '/${match.group(1)}';
+        }
+      }
     }
     
-    // Build full URL from baseUrl
+    // Build full URL from current platform's baseUrl
     final baseWithoutApi = baseUrl.replaceAll('/api/v1', '');
     // Ensure relativePath starts with /
-    final path = relativePath.startsWith('/') ? relativePath : '/$relativePath';
+    final path = actualRelativePath.startsWith('/') ? actualRelativePath : '/$actualRelativePath';
     return '$baseWithoutApi$path';
   }
 }

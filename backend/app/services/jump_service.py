@@ -81,6 +81,9 @@ class JumpService:
         
         update_data = jump_update.dict(exclude_unset=True)
         
+        # Remove deprecated fields that should not be updated
+        update_data.pop("checklist_completed", None)  # Deprecated - always ignore
+        
         # Handle equipment update separately
         if "equipment_ids" in update_data:
             equipment_ids = update_data.pop("equipment_ids")
