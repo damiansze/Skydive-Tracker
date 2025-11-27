@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from app.models.profile import Profile
 from app.schemas.profile import ProfileBase, ProfileUpdate
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 class ProfileService:
     @staticmethod

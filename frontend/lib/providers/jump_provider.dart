@@ -5,7 +5,7 @@ import 'database_provider.dart';
 import 'profile_provider.dart';
 
 final jumpServiceProvider = Provider<JumpService>((ref) {
-  return JumpService(ref.read(databaseServiceProvider));
+  return JumpService(ref.read(apiServiceProvider));
 });
 
 final jumpListProvider = FutureProvider.family<List<Jump>, String?>((ref, locationFilter) async {

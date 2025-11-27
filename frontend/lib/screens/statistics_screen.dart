@@ -12,7 +12,7 @@ final distinctLocationsProvider = FutureProvider<List<String>>((ref) async {
   return await service.getDistinctLocations();
 });
 
-final totalJumpsProvider = Provider.family<Future<int>, String?>((ref, locationFilter) async {
+final totalJumpsProvider = FutureProvider.family<int, String?>((ref, locationFilter) async {
   final service = ref.read(jumpServiceProvider);
   return await service.getTotalJumps(locationFilter: locationFilter);
 });
@@ -115,59 +115,59 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      totalJumpsAsync.when(
-                        data: (totalJumps) => Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Column(
-                              children: [
-                                Text(
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Column(
+                            children: [
+                              totalJumpsAsync.when(
+                                data: (totalJumps) => Text(
                                   '$totalJumps',
                                   style: const TextStyle(
                                     fontSize: 32,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
+                                loading: () => const CircularProgressIndicator(),
+                                error: (_, __) => const Text('?'),
+                              ),
+                              Text(
+                                _selectedLocationFilter != null
+                                    ? 'Sprünge in\n$_selectedLocationFilter'
+                                    : 'Gesamte Sprünge',
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                          locationsAsync.when(
+                            data: (locations) => Column(
+                              children: [
                                 Text(
-                                  _selectedLocationFilter != null
-                                      ? 'Sprünge in\n$_selectedLocationFilter'
-                                      : 'Gesamte Sprünge',
-                                  textAlign: TextAlign.center,
+                                  '${locations.length}',
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
+                                const Text('Sprungplätze'),
                               ],
                             ),
-                            locationsAsync.when(
-                              data: (locations) => Column(
-                                children: [
-                                  Text(
-                                    '${locations.length}',
-                                    style: const TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const Text('Sprungplätze'),
-                                ],
-                              ),
-                              loading: () => const Column(
-                                children: [
-                                  CircularProgressIndicator(),
-                                  SizedBox(height: 8),
-                                  Text('Sprungplätze'),
-                                ],
-                              ),
-                              error: (_, __) => const Column(
-                                children: [
-                                  Icon(Icons.error),
-                                  SizedBox(height: 8),
-                                  Text('Sprungplätze'),
-                                ],
-                              ),
+                            loading: () => const Column(
+                              children: [
+                                CircularProgressIndicator(),
+                                SizedBox(height: 8),
+                                Text('Sprungplätze'),
+                              ],
                             ),
-                          ],
-                        ),
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (_, __) => const Text('Fehler beim Laden'),
+                            error: (_, __) => const Column(
+                              children: [
+                                Icon(Icons.error),
+                                SizedBox(height: 8),
+                                Text('Sprungplätze'),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

@@ -22,10 +22,12 @@ class Equipment {
   });
 
   Map<String, dynamic> toMap() {
+    // Convert enum to lowercase string for backend (e.g., PARACHUTE -> "parachute")
+    final typeString = type.toString().split('.').last.toLowerCase();
     return {
       'id': id,
       'name': name,
-      'type': type.toString().split('.').last,
+      'type': typeString,
       'manufacturer': manufacturer,
       'model': model,
       'serial_number': serialNumber,
@@ -36,13 +38,33 @@ class Equipment {
   }
 
   factory Equipment.fromMap(Map<String, dynamic> map) {
+    // Handle type conversion from backend (string like "parachute") to enum
+    EquipmentType equipmentType = EquipmentType.OTHER;
+    if (map['type'] != null) {
+      final typeString = map['type'].toString().toLowerCase();
+      try {
+        equipmentType = EquipmentType.values.firstWhere(
+          (e) => e.toString().split('.').last.toLowerCase() == typeString,
+          orElse: () => EquipmentType.OTHER,
+        );
+      } catch (e) {
+        // Try direct mapping for backend format (e.g., "parachute" -> PARACHUTE)
+        final upperType = typeString.toUpperCase();
+        try {
+          equipmentType = EquipmentType.values.firstWhere(
+            (e) => e.toString().split('.').last == upperType,
+            orElse: () => EquipmentType.OTHER,
+          );
+        } catch (_) {
+          equipmentType = EquipmentType.OTHER;
+        }
+      }
+    }
+    
     return Equipment(
       id: map['id'] as String,
       name: map['name'] as String,
-      type: EquipmentType.values.firstWhere(
-        (e) => e.toString().split('.').last == map['type'],
-        orElse: () => EquipmentType.OTHER,
-      ),
+      type: equipmentType,
       manufacturer: map['manufacturer'] as String?,
       model: map['model'] as String?,
       serialNumber: map['serial_number'] as String?,

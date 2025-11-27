@@ -4,7 +4,7 @@ import '../services/equipment_service.dart';
 import 'database_provider.dart';
 
 final equipmentServiceProvider = Provider<EquipmentService>((ref) {
-  return EquipmentService(ref.read(databaseServiceProvider));
+  return EquipmentService(ref.read(apiServiceProvider));
 });
 
 final equipmentListProvider = FutureProvider<List<Equipment>>((ref) async {

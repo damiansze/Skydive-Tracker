@@ -38,6 +38,22 @@ class Jump {
   }
 
   factory Jump.fromMap(Map<String, dynamic> map) {
+    // Handle both int and bool for checklist_completed
+    bool checklistCompleted = false;
+    if (map['checklist_completed'] != null) {
+      if (map['checklist_completed'] is bool) {
+        checklistCompleted = map['checklist_completed'] as bool;
+      } else {
+        checklistCompleted = (map['checklist_completed'] as int) == 1;
+      }
+    }
+    
+    // Handle equipment_ids from backend
+    List<String> equipmentIds = [];
+    if (map['equipment_ids'] != null) {
+      equipmentIds = List<String>.from(map['equipment_ids'] as List);
+    }
+    
     return Jump(
       id: map['id'] as String,
       date: DateTime.parse(map['date'] as String),
@@ -45,7 +61,8 @@ class Jump {
       latitude: map['latitude'] as double?,
       longitude: map['longitude'] as double?,
       altitude: map['altitude'] as int,
-      checklistCompleted: (map['checklist_completed'] as int) == 1,
+      equipmentIds: equipmentIds,
+      checklistCompleted: checklistCompleted,
       notes: map['notes'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
     );

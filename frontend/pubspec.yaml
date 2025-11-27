@@ -50,10 +50,6 @@ dependencies:
   # State Management
   flutter_riverpod: ^2.5.1
   
-  # Database
-  sqflite: ^2.3.0
-  path: ^1.8.3
-  
   # UUID
   uuid: ^4.3.3
 

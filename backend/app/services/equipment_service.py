@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.models.equipment import Equipment
 from app.schemas.equipment import EquipmentCreate, EquipmentUpdate
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 class EquipmentService:
     @staticmethod

@@ -1,13 +1,11 @@
-import 'package:uuid/uuid.dart';
 import '../models/jump.dart';
 import '../models/equipment.dart';
-import 'database_service.dart';
+import 'api_service.dart';
 
 class JumpService {
-  final DatabaseService _db;
-  final _uuid = const Uuid();
+  final ApiService _api;
 
-  JumpService(this._db);
+  JumpService(this._api);
 
   Future<String> createJump({
     required DateTime date,
@@ -19,8 +17,7 @@ class JumpService {
     bool checklistCompleted = false,
     String? notes,
   }) async {
-    final jump = Jump(
-      id: _uuid.v4(),
+    final jump = await _api.createJump(
       date: date,
       location: location,
       latitude: latitude,
@@ -29,61 +26,39 @@ class JumpService {
       equipmentIds: equipmentIds,
       checklistCompleted: checklistCompleted,
       notes: notes,
-      createdAt: DateTime.now(),
     );
-
-    await _db.insertJump(jump);
-    
-    // Update profile total jumps
-    final profile = await _db.getProfile();
-    if (profile != null) {
-      await _db.updateProfile(profile.copyWith(
-        totalJumps: profile.totalJumps + 1,
-        updatedAt: DateTime.now(),
-      ));
-    }
-
     return jump.id;
   }
 
   Future<List<Jump>> getAllJumps({String? locationFilter}) async {
-    return await _db.getAllJumps(locationFilter: locationFilter);
+    return await _api.getAllJumps(locationFilter: locationFilter);
   }
 
   Future<Jump?> getJumpById(String id) async {
-    return await _db.getJumpById(id);
+    return await _api.getJumpById(id);
   }
 
   Future<void> updateJump(Jump jump) async {
-    await _db.updateJump(jump);
+    await _api.updateJump(jump);
   }
 
   Future<void> deleteJump(String id) async {
-    await _db.deleteJump(id);
-    
-    // Update profile total jumps
-    final profile = await _db.getProfile();
-    if (profile != null && profile.totalJumps > 0) {
-      await _db.updateProfile(profile.copyWith(
-        totalJumps: profile.totalJumps - 1,
-        updatedAt: DateTime.now(),
-      ));
-    }
+    await _api.deleteJump(id);
   }
 
   Future<int> getTotalJumps({String? locationFilter}) async {
-    return await _db.getTotalJumps(locationFilter: locationFilter);
+    return await _api.getTotalJumps(locationFilter: locationFilter);
   }
 
   Future<List<String>> getDistinctLocations() async {
-    return await _db.getDistinctLocations();
+    return await _api.getDistinctLocations();
   }
 
   Future<List<Equipment>> getJumpEquipment(String jumpId) async {
     final jump = await getJumpById(jumpId);
     if (jump == null) return [];
     
-    final allEquipment = await _db.getAllEquipment();
+    final allEquipment = await _api.getAllEquipment();
     return allEquipment.where((e) => jump.equipmentIds.contains(e.id)).toList();
   }
 }

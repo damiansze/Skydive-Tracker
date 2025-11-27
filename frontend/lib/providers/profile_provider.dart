@@ -4,7 +4,7 @@ import '../services/profile_service.dart';
 import 'database_provider.dart';
 
 final profileServiceProvider = Provider<ProfileService>((ref) {
-  return ProfileService(ref.read(databaseServiceProvider));
+  return ProfileService(ref.read(apiServiceProvider));
 });
 
 final profileProvider = FutureProvider<Profile?>((ref) async {

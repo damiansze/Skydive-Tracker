@@ -4,12 +4,18 @@ from typing import List, Optional
 from app.models.jump import Jump
 from app.models.equipment import Equipment
 from app.schemas.jump import JumpCreate, JumpUpdate
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 class JumpService:
     @staticmethod
     def get_all(db: Session) -> List[Jump]:
         """Get all jumps"""
-        return db.query(Jump).options(joinedload(Jump.equipment)).order_by(Jump.date.desc()).all()
+        logger.info("Fetching all jumps", extra={"event": "jump_get_all"})
+        jumps = db.query(Jump).options(joinedload(Jump.equipment)).order_by(Jump.date.desc()).all()
+        logger.info("Retrieved jumps", extra={"event": "jump_get_all_success", "count": len(jumps)})
+        return jumps
 
     @staticmethod
     def get_by_id(db: Session, jump_id: str) -> Optional[Jump]:
@@ -19,6 +25,14 @@ class JumpService:
     @staticmethod
     def create(db: Session, jump_data: JumpCreate) -> Jump:
         """Create a new jump"""
+        logger.info(
+            "Creating jump",
+            extra={
+                "event": "jump_create",
+                "location": jump_data.location,
+                "altitude": jump_data.altitude,
+            }
+        )
         jump = Jump(
             date=jump_data.date,
             location=jump_data.location,
@@ -41,6 +55,7 @@ class JumpService:
         db.refresh(jump)
         # Ensure equipment relationship is loaded
         _ = jump.equipment  # Trigger lazy load if needed
+        logger.info("Jump created successfully", extra={"event": "jump_create_success", "jump_id": jump.id})
         return jump
 
     @staticmethod
@@ -72,9 +87,12 @@ class JumpService:
     @staticmethod
     def delete(db: Session, jump_id: str) -> bool:
         """Delete a jump"""
+        logger.info("Deleting jump", extra={"event": "jump_delete", "jump_id": jump_id})
         jump = db.query(Jump).filter(Jump.id == jump_id).first()
         if not jump:
+            logger.warning("Jump not found for deletion", extra={"event": "jump_delete_not_found", "jump_id": jump_id})
             return False
         db.delete(jump)
         db.commit()
+        logger.info("Jump deleted successfully", extra={"event": "jump_delete_success", "jump_id": jump_id})
         return True
