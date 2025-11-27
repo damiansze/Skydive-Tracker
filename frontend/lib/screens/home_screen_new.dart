@@ -25,7 +25,9 @@ class HomeScreenNew extends ConsumerWidget {
             children: [
               // Profile Section
               profileAsync.when(
-                data: (profile) => _buildProfileSection(context, profile),
+                data: (profile) => profile != null 
+                    ? _buildProfileSection(context, profile)
+                    : _buildEmptyProfileSection(context),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stack) => Center(
                   child: Text('Fehler beim Laden: $error'),
@@ -143,6 +145,53 @@ class HomeScreenNew extends ConsumerWidget {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyProfileSection(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(context).colorScheme.primary,
+            Theme.of(context).colorScheme.primary.withOpacity(0.7),
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: Colors.white,
+            child: Icon(
+              Icons.person,
+              size: 50,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Kein Profil vorhanden',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Bitte erstelle ein Profil in den Einstellungen',
+            style: TextStyle(
+              color: Colors.white70,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
