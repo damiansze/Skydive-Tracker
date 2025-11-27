@@ -1,5 +1,5 @@
 """Jump service for business logic"""
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.models.jump import Jump
 from app.models.equipment import Equipment
@@ -9,12 +9,12 @@ class JumpService:
     @staticmethod
     def get_all(db: Session) -> List[Jump]:
         """Get all jumps"""
-        return db.query(Jump).order_by(Jump.date.desc()).all()
+        return db.query(Jump).options(joinedload(Jump.equipment)).order_by(Jump.date.desc()).all()
 
     @staticmethod
     def get_by_id(db: Session, jump_id: str) -> Optional[Jump]:
         """Get jump by ID"""
-        return db.query(Jump).filter(Jump.id == jump_id).first()
+        return db.query(Jump).options(joinedload(Jump.equipment)).filter(Jump.id == jump_id).first()
 
     @staticmethod
     def create(db: Session, jump_data: JumpCreate) -> Jump:
@@ -39,12 +39,14 @@ class JumpService:
         db.add(jump)
         db.commit()
         db.refresh(jump)
+        # Ensure equipment relationship is loaded
+        _ = jump.equipment  # Trigger lazy load if needed
         return jump
 
     @staticmethod
     def update(db: Session, jump_id: str, jump_update: JumpUpdate) -> Optional[Jump]:
         """Update a jump"""
-        jump = db.query(Jump).filter(Jump.id == jump_id).first()
+        jump = db.query(Jump).options(joinedload(Jump.equipment)).filter(Jump.id == jump_id).first()
         if not jump:
             return None
         
@@ -63,6 +65,8 @@ class JumpService:
         
         db.commit()
         db.refresh(jump)
+        # Ensure equipment relationship is loaded
+        _ = jump.equipment  # Trigger lazy load if needed
         return jump
 
     @staticmethod

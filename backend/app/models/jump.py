@@ -28,3 +28,8 @@ class Jump(Base):
 
     # Relationships
     equipment = relationship("Equipment", secondary=jump_equipment, backref="jumps")
+    
+    @property
+    def equipment_ids(self):
+        """Return list of equipment IDs"""
+        return [eq.id for eq in self.equipment] if self.equipment else []
