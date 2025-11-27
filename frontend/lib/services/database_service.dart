@@ -21,15 +21,28 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-
     String path;
     Directory dbDir;
     
     if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-      // For desktop platforms, use a local directory
-      final directory = await getApplicationDocumentsDirectory();
-      dbDir = Directory(directory.path);
-      path = join(directory.path, 'skydive_tracker.db');
+      // For desktop platforms, use a directory in the user's home
+      String? homeDir;
+      if (Platform.isLinux || Platform.isMacOS) {
+        homeDir = Platform.environment['HOME'];
+      } else if (Platform.isWindows) {
+        homeDir = Platform.environment['USERPROFILE'] ?? 
+                  Platform.environment['APPDATA'];
+      }
+      
+      if (homeDir != null && homeDir.isNotEmpty) {
+        dbDir = Directory(join(homeDir, '.skydive_tracker'));
+        path = join(dbDir.path, 'skydive_tracker.db');
+      } else {
+        // Fallback to temp directory
+        final tempDir = Directory.systemTemp;
+        dbDir = Directory(join(tempDir.path, 'skydive_tracker'));
+        path = join(dbDir.path, 'skydive_tracker.db');
+      }
     } else {
       // For mobile platforms, use the standard database path
       final dbPath = await getDatabasesPath();
@@ -39,14 +52,21 @@ class DatabaseService {
 
     // Ensure directory exists
     if (!await dbDir.exists()) {
-      await dbDir.create(recursive: true);
-    }
-
-    // Ensure parent directory of the file exists
-    final file = File(path);
-    final parentDir = file.parent;
-    if (!await parentDir.exists()) {
-      await parentDir.create(recursive: true);
+      try {
+        await dbDir.create(recursive: true);
+      } catch (e) {
+        // If creation fails, try using a temp directory (desktop only)
+        if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+          final tempDir = Directory.systemTemp;
+          dbDir = Directory(join(tempDir.path, 'skydive_tracker'));
+          path = join(dbDir.path, 'skydive_tracker.db');
+          if (!await dbDir.exists()) {
+            await dbDir.create(recursive: true);
+          }
+        } else {
+          rethrow;
+        }
+      }
     }
 
     try {
