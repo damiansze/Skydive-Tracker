@@ -266,8 +266,30 @@ class ApiService {
     return locations.map((e) => e as String).toList();
   }
 
-  Future<Map<String, dynamic>> getStatisticsSummary({String? locationFilter}) async {
-    final queryParam = locationFilter != null ? '?location=$locationFilter' : '';
+  Future<Map<String, dynamic>> getStatisticsSummary({
+    String? locationFilter,
+    String? jumpTypeFilter,
+    String? jumpMethodFilter,
+  }) async {
+    final params = <String>[];
+    if (locationFilter != null) params.add('location=$locationFilter');
+    if (jumpTypeFilter != null) params.add('jump_type=$jumpTypeFilter');
+    if (jumpMethodFilter != null) params.add('jump_method=$jumpMethodFilter');
+    final queryParam = params.isNotEmpty ? '?${params.join('&')}' : '';
     return await _getMap('/statistics/summary$queryParam');
+  }
+  
+  Future<int> getTotalJumps({
+    String? locationFilter,
+    String? jumpTypeFilter,
+    String? jumpMethodFilter,
+  }) async {
+    final params = <String>[];
+    if (locationFilter != null) params.add('location=$locationFilter');
+    if (jumpTypeFilter != null) params.add('jump_type=$jumpTypeFilter');
+    if (jumpMethodFilter != null) params.add('jump_method=$jumpMethodFilter');
+    final queryParam = params.isNotEmpty ? '?${params.join('&')}' : '';
+    final data = await _getMap('/statistics/total-jumps$queryParam');
+    return data['total_jumps'] as int;
   }
 }

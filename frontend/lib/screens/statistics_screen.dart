@@ -13,14 +13,22 @@ final distinctLocationsProvider = FutureProvider<List<String>>((ref) async {
   return await service.getDistinctLocations();
 });
 
-final totalJumpsProvider = FutureProvider.family<int, String?>((ref, locationFilter) async {
+final totalJumpsProvider = FutureProvider.family<int, Map<String, String?>>((ref, filters) async {
   final service = ref.read(jumpServiceProvider);
-  return await service.getTotalJumps(locationFilter: locationFilter);
+  return await service.getTotalJumps(
+    locationFilter: filters['location'],
+    jumpTypeFilter: filters['jumpType'],
+    jumpMethodFilter: filters['jumpMethod'],
+  );
 });
 
-final statisticsSummaryProvider = FutureProvider.family<Map<String, dynamic>, String?>((ref, locationFilter) async {
+final statisticsSummaryProvider = FutureProvider.family<Map<String, dynamic>, Map<String, String?>>((ref, filters) async {
   final api = ref.read(apiServiceProvider);
-  return await api.getStatisticsSummary(locationFilter: locationFilter);
+  return await api.getStatisticsSummary(
+    locationFilter: filters['location'],
+    jumpTypeFilter: filters['jumpType'],
+    jumpMethodFilter: filters['jumpMethod'],
+  );
 });
 
 class StatisticsScreen extends ConsumerStatefulWidget {
@@ -32,7 +40,15 @@ class StatisticsScreen extends ConsumerStatefulWidget {
 
 class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   String? _selectedLocationFilter;
+  JumpType? _selectedJumpTypeFilter;
+  JumpMethod? _selectedJumpMethodFilter;
   final MapController _mapController = MapController();
+  
+  Map<String, String?> get _filters => {
+    'location': _selectedLocationFilter,
+    'jumpType': _selectedJumpTypeFilter?.toString().split('.').last.toLowerCase(),
+    'jumpMethod': _selectedJumpMethodFilter?.toString().split('.').last.toLowerCase(),
+  };
   
   void _centerMapOnLocations(List<dynamic> locationsWithCoords) {
     if (locationsWithCoords.isEmpty) return;
@@ -55,6 +71,18 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       _selectedLocationFilter = location;
     });
     ref.read(jumpNotifierProvider.notifier).setLocationFilter(location);
+  }
+  
+  void _onJumpTypeFilterChanged(JumpType? type) {
+    setState(() {
+      _selectedJumpTypeFilter = _selectedJumpTypeFilter == type ? null : type;
+    });
+  }
+  
+  void _onJumpMethodFilterChanged(JumpMethod? method) {
+    setState(() {
+      _selectedJumpMethodFilter = _selectedJumpMethodFilter == method ? null : method;
+    });
   }
 
   Future<void> _editJump(Jump jump) async {
@@ -112,15 +140,24 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   Widget build(BuildContext context) {
     final jumpsAsync = ref.watch(jumpNotifierProvider);
     final locationsAsync = ref.watch(distinctLocationsProvider);
-    final totalJumpsAsync = ref.watch(totalJumpsProvider(_selectedLocationFilter));
-    final statisticsSummaryAsync = ref.watch(statisticsSummaryProvider(_selectedLocationFilter));
+    final totalJumpsAsync = ref.watch(totalJumpsProvider(_filters));
+    final statisticsSummaryAsync = ref.watch(statisticsSummaryProvider(_filters));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Statistik & Übersicht'),
       ),
       body: jumpsAsync.when(
-        data: (jumps) {
+        data: (allJumps) {
+          // Filter jumps based on selected filters
+          List<Jump> jumps = allJumps;
+          if (_selectedJumpTypeFilter != null) {
+            jumps = jumps.where((j) => j.jumpType == _selectedJumpTypeFilter).toList();
+          }
+          if (_selectedJumpMethodFilter != null) {
+            jumps = jumps.where((j) => j.jumpMethod == _selectedJumpMethodFilter).toList();
+          }
+          
           return SingleChildScrollView(
             child: Column(
               children: [
@@ -229,9 +266,22 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                       } catch (e) {
                                         return const SizedBox.shrink();
                                       }
-                                      return Chip(
-                                        label: Text('${type.displayName}: $count'),
-                                        avatar: const Icon(Icons.paragliding, size: 18),
+                                      final isSelected = _selectedJumpTypeFilter == type;
+                                      return InkWell(
+                                        onTap: () => _onJumpTypeFilterChanged(type),
+                                        child: Chip(
+                                          label: Text('${type.displayName}: $count'),
+                                          avatar: const Icon(Icons.paragliding, size: 18),
+                                          backgroundColor: isSelected 
+                                              ? Theme.of(context).colorScheme.primaryContainer
+                                              : null,
+                                          side: isSelected
+                                              ? BorderSide(
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                  width: 2,
+                                                )
+                                              : null,
+                                        ),
                                       );
                                     }).toList(),
                                   ),
@@ -260,17 +310,30 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                       } catch (e) {
                                         return const SizedBox.shrink();
                                       }
-                                      return Chip(
-                                        label: Text('${method.displayName}: $count'),
-                                        avatar: Icon(
-                                          method == JumpMethod.PLANE 
-                                              ? Icons.flight 
-                                              : method == JumpMethod.HELICOPTER
-                                                  ? Icons.flight_takeoff
-                                                  : method == JumpMethod.BASE
-                                                      ? Icons.landscape
-                                                      : Icons.location_on,
-                                          size: 18,
+                                      final isSelected = _selectedJumpMethodFilter == method;
+                                      return InkWell(
+                                        onTap: () => _onJumpMethodFilterChanged(method),
+                                        child: Chip(
+                                          label: Text('${method.displayName}: $count'),
+                                          avatar: Icon(
+                                            method == JumpMethod.PLANE 
+                                                ? Icons.flight 
+                                                : method == JumpMethod.HELICOPTER
+                                                    ? Icons.flight_takeoff
+                                                    : method == JumpMethod.BASE
+                                                        ? Icons.landscape
+                                                        : Icons.location_on,
+                                            size: 18,
+                                          ),
+                                          backgroundColor: isSelected 
+                                              ? Theme.of(context).colorScheme.primaryContainer
+                                              : null,
+                                          side: isSelected
+                                              ? BorderSide(
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                  width: 2,
+                                                )
+                                              : null,
                                         ),
                                       );
                                     }).toList(),
@@ -331,17 +394,42 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                 ),
                                 MarkerLayer(
                                   markers: locationsWithCoords.map((loc) {
+                                    final count = loc['count'] as int? ?? 1;
                                     return Marker(
                                       point: LatLng(
                                         loc['latitude'] as double,
                                         loc['longitude'] as double,
                                       ),
-                                      width: 40,
-                                      height: 40,
-                                      child: const Icon(
-                                        Icons.paragliding,
-                                        color: Colors.red,
-                                        size: 30,
+                                      width: count > 1 ? 50 : 40,
+                                      height: count > 1 ? 50 : 40,
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.paragliding,
+                                            color: Colors.red,
+                                            size: count > 1 ? 35 : 30,
+                                          ),
+                                          if (count > 1)
+                                            Positioned(
+                                              bottom: 0,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red,
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                child: Text(
+                                                  '$count',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     );
                                   }).toList(),
@@ -446,16 +534,22 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                               spacing: 8,
                               children: [
                                 if (jump.jumpType != null)
-                                  Chip(
-                                    label: Text(jump.jumpType!.displayName),
-                                    labelStyle: const TextStyle(fontSize: 11),
-                                    padding: EdgeInsets.zero,
+                                  InkWell(
+                                    onTap: () => _onJumpTypeFilterChanged(jump.jumpType),
+                                    child: Chip(
+                                      label: Text(jump.jumpType!.displayName),
+                                      labelStyle: const TextStyle(fontSize: 11),
+                                      padding: EdgeInsets.zero,
+                                    ),
                                   ),
                                 if (jump.jumpMethod != null)
-                                  Chip(
-                                    label: Text(jump.jumpMethod!.displayName),
-                                    labelStyle: const TextStyle(fontSize: 11),
-                                    padding: EdgeInsets.zero,
+                                  InkWell(
+                                    onTap: () => _onJumpMethodFilterChanged(jump.jumpMethod),
+                                    child: Chip(
+                                      label: Text(jump.jumpMethod!.displayName),
+                                      labelStyle: const TextStyle(fontSize: 11),
+                                      padding: EdgeInsets.zero,
+                                    ),
                                   ),
                               ],
                             ),

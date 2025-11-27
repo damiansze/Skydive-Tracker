@@ -9,6 +9,8 @@ import '../providers/jump_provider.dart';
 import '../providers/equipment_provider.dart';
 import '../services/geocoding_service.dart';
 import 'map_location_picker_screen.dart';
+import 'settings_screen.dart';
+import 'statistics_screen.dart';
 
 class AddJumpScreen extends ConsumerStatefulWidget {
   final Jump? jump; // For editing existing jumps
@@ -187,9 +189,18 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   }
 
   Future<void> _selectTime() async {
+    final timeFormat = ref.read(timeFormatProvider);
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            alwaysUse24HourFormat: timeFormat == '24h',
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != _selectedTime) {
       setState(() {
@@ -275,12 +286,16 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           jumpType: _selectedJumpType,
           jumpMethod: _selectedJumpMethod,
           equipmentIds: _selectedEquipmentIds.toList(),
-          checklistCompleted: _checklistItems.values.every((v) => v),
+          checklistCompleted: _selectedEquipmentIds.isNotEmpty, // Equipment was selected
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         );
       }
 
       if (mounted) {
+        // Refresh statistics providers
+        ref.invalidate(distinctLocationsProvider);
+        ref.invalidate(totalJumpsProvider);
+        ref.invalidate(statisticsSummaryProvider);
         Navigator.of(context).pop(true);
       }
     } catch (e) {
@@ -530,10 +545,13 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
               ),
               const SizedBox(height: 16),
               
-              // Equipment Checklist
+              // Equipment Übersicht
               equipmentAsync.when(
                 data: (equipment) {
-                  if (equipment.isEmpty) {
+                  // Filter only active equipment
+                  final activeEquipment = equipment.where((eq) => eq.isActive).toList();
+                  
+                  if (activeEquipment.isEmpty) {
                     return const SizedBox.shrink();
                   }
 
@@ -541,7 +559,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                   if (_checklistItems.isEmpty) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       setState(() {
-                        for (var eq in equipment) {
+                        for (var eq in activeEquipment) {
                           _checklistItems[eq.id] = _selectedEquipmentIds.contains(eq.id);
                         }
                       });
@@ -552,11 +570,11 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Equipment Checkliste',
+                        'Verwendetes Equipment',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-                      ...equipment.map((eq) {
+                      ...activeEquipment.map((eq) {
                         return CheckboxListTile(
                           title: Text(eq.name),
                           subtitle: Text('${eq.type.displayName}${eq.manufacturer != null ? ' - ${eq.manufacturer}' : ''}'),

@@ -26,6 +26,7 @@ class EquipmentService {
       purchaseDate: purchaseDate,
       reminderAfterJumps: reminderAfterJumps,
       notes: notes,
+      isActive: true, // New equipment is always active
     );
 
     final created = await _api.createEquipment(equipment);

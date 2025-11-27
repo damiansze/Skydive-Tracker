@@ -50,8 +50,16 @@ class JumpService {
     await _api.deleteJump(id);
   }
 
-  Future<int> getTotalJumps({String? locationFilter}) async {
-    return await _api.getTotalJumps(locationFilter: locationFilter);
+  Future<int> getTotalJumps({
+    String? locationFilter,
+    String? jumpTypeFilter,
+    String? jumpMethodFilter,
+  }) async {
+    return await _api.getTotalJumps(
+      locationFilter: locationFilter,
+      jumpTypeFilter: jumpTypeFilter,
+      jumpMethodFilter: jumpMethodFilter,
+    );
   }
 
   Future<List<String>> getDistinctLocations() async {

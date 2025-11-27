@@ -8,6 +8,7 @@ class Equipment {
   final DateTime? purchaseDate;
   final int? reminderAfterJumps;  // For reserve: remind after X jumps
   final String? notes;
+  final bool isActive;  // true = active, false = inactive
   final DateTime? createdAt;
 
   Equipment({
@@ -20,6 +21,7 @@ class Equipment {
     this.purchaseDate,
     this.reminderAfterJumps,
     this.notes,
+    this.isActive = true,
     this.createdAt,
   });
 
@@ -36,6 +38,7 @@ class Equipment {
       'purchase_date': purchaseDate?.toIso8601String(),
       'reminder_after_jumps': reminderAfterJumps,
       'notes': notes,
+      'is_active': isActive ? 1 : 0,
       'created_at': createdAt?.toIso8601String(),
     };
   }
@@ -76,6 +79,7 @@ class Equipment {
           : null,
       reminderAfterJumps: map['reminder_after_jumps'] as int?,
       notes: map['notes'] as String?,
+      isActive: map['is_active'] != null ? (map['is_active'] as int) == 1 : true,
       createdAt: map['created_at'] != null
           ? DateTime.parse(map['created_at'] as String)
           : null,
@@ -92,6 +96,7 @@ class Equipment {
     DateTime? purchaseDate,
     int? reminderAfterJumps,
     String? notes,
+    bool? isActive,
     DateTime? createdAt,
   }) {
     return Equipment(
@@ -104,6 +109,7 @@ class Equipment {
       purchaseDate: purchaseDate ?? this.purchaseDate,
       reminderAfterJumps: reminderAfterJumps ?? this.reminderAfterJumps,
       notes: notes ?? this.notes,
+      isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
     );
   }

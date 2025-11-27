@@ -56,8 +56,21 @@ def init_db():
                 cursor.execute("PRAGMA table_info(equipment)")
                 columns = [column[1] for column in cursor.fetchall()]
                 if 'reminder_after_jumps' not in columns:
-                    cursor.execute("ALTER TABLE equipment ADD COLUMN reminder_after_jumps INTEGER")
-                    conn.commit()
+                    try:
+                        cursor.execute("ALTER TABLE equipment ADD COLUMN reminder_after_jumps INTEGER")
+                        conn.commit()
+                    except sqlite3.OperationalError as e:
+                        if "duplicate column" not in str(e).lower():
+                            raise
+                
+                # Check and add is_active column if missing
+                if 'is_active' not in columns:
+                    try:
+                        cursor.execute("ALTER TABLE equipment ADD COLUMN is_active INTEGER DEFAULT 1")
+                        conn.commit()
+                    except sqlite3.OperationalError as e:
+                        if "duplicate column" not in str(e).lower():
+                            raise
                 
                 # Check and add profile_picture_url column if missing
                 cursor.execute("PRAGMA table_info(profiles)")

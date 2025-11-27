@@ -93,7 +93,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             IconButton(
-              icon: const Icon(Icons.home),
+              icon: Icon(
+                Icons.home,
+                color: _selectedIndex == 0
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
+              ),
               onPressed: () {
                 setState(() {
                   _selectedIndex = 0;
@@ -101,7 +106,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.bar_chart),
+              icon: Icon(
+                Icons.bar_chart,
+                color: _selectedIndex == 1
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
+              ),
               onPressed: () {
                 setState(() {
                   _selectedIndex = 1;
@@ -109,7 +119,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.shopping_bag),
+              icon: Icon(
+                Icons.shopping_bag,
+                color: _selectedIndex == 2
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
+              ),
               onPressed: () {
                 setState(() {
                   _selectedIndex = 2;
@@ -117,7 +132,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.settings),
+              icon: Icon(
+                Icons.settings,
+                color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
+              ),
               onPressed: () {
                 Navigator.push(
                   context,

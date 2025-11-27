@@ -26,4 +26,5 @@ class Equipment(Base):
     purchase_date = Column(DateTime(timezone=True), nullable=True)
     reminder_after_jumps = Column(Integer, nullable=True)  # For reserve parachute: remind after X jumps
     notes = Column(String, nullable=True)
+    is_active = Column(Integer, default=1, nullable=False)  # 1 = active, 0 = inactive
     created_at = Column(DateTime(timezone=True), server_default=func.now())

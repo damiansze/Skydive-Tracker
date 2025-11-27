@@ -32,6 +32,18 @@ class MetricNotifier extends StateNotifier<String> {
   }
 }
 
+final timeFormatProvider = StateNotifierProvider<TimeFormatNotifier, String>((ref) {
+  return TimeFormatNotifier();
+});
+
+class TimeFormatNotifier extends StateNotifier<String> {
+  TimeFormatNotifier() : super('24h'); // '24h' or '12h'
+  
+  void setTimeFormat(String format) {
+    state = format;
+  }
+}
+
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -120,7 +132,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.person),
             title: const Text('Profil bearbeiten'),
-            subtitle: const Text('Name, Lizenz und Profilbild ändern'),
+            subtitle: const Text('Name und Lizenz ändern'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () async {
               final result = await Navigator.push(
@@ -190,6 +202,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onChanged: (value) {
                 if (value != null) {
                   ref.read(themeModeProvider.notifier).setThemeMode(value);
+                }
+              },
+            ),
+          ),
+          const Divider(),
+          
+          // Time Format Selection
+          ListTile(
+            leading: const Icon(Icons.access_time),
+            title: const Text('Uhrzeitformat'),
+            subtitle: Text(ref.watch(timeFormatProvider) == '24h' ? '24 Stunden' : '12 Stunden (AM/PM)'),
+            trailing: DropdownButton<String>(
+              value: ref.watch(timeFormatProvider),
+              items: const [
+                DropdownMenuItem(
+                  value: '24h',
+                  child: Text('24 Stunden'),
+                ),
+                DropdownMenuItem(
+                  value: '12h',
+                  child: Text('12 Stunden (AM/PM)'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(timeFormatProvider.notifier).setTimeFormat(value);
                 }
               },
             ),

@@ -3,6 +3,7 @@ import '../models/jump.dart';
 import '../services/jump_service.dart';
 import 'database_provider.dart';
 import 'profile_provider.dart';
+import '../screens/statistics_screen.dart';
 
 final jumpServiceProvider = Provider<JumpService>((ref) {
   return JumpService(ref.read(apiServiceProvider));
