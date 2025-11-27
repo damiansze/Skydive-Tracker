@@ -41,6 +41,8 @@ class JumpService:
             latitude=jump_data.latitude,
             longitude=jump_data.longitude,
             altitude=jump_data.altitude,
+            jump_type=jump_data.jump_type,
+            jump_method=jump_data.jump_method,
             checklist_completed=jump_data.checklist_completed,
             notes=jump_data.notes,
         )

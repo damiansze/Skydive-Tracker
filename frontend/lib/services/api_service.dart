@@ -11,11 +11,21 @@ class ApiService {
   // Helper method for GET requests - returns dynamic to handle both Map and List
   Future<dynamic> _get(String endpoint) async {
     final url = '$baseUrl$endpoint';
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to load: ${response.statusCode}');
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 404) {
+        throw Exception('Not found: ${response.statusCode}');
+      } else {
+        final errorBody = response.body;
+        throw Exception('Failed to load: ${response.statusCode} - $errorBody');
+      }
+    } catch (e) {
+      if (e.toString().contains('Failed to load') || e.toString().contains('Exception')) {
+        rethrow;
+      }
+      throw Exception('Network error: $e');
     }
   }
 
@@ -84,9 +94,12 @@ class ApiService {
       final data = await _getMap('/profile/');
       return Profile.fromMap(data);
     } catch (e) {
-      if (e.toString().contains('404')) {
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('404') || errorStr.contains('not found')) {
         return null;
       }
+      // Log other errors but don't crash
+      print('Error fetching profile: $e');
       rethrow;
     }
   }
