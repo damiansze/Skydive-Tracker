@@ -51,7 +51,7 @@ class HomeScreenNew extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     achievementsAsync.when(
-                      data: (achievements) => _buildAchievementsGrid(achievements),
+                      data: (achievements) => _buildAchievementsGrid(context, achievements),
                       loading: () => const Center(child: CircularProgressIndicator()),
                       error: (error, stack) => Center(
                         child: Text('Fehler beim Laden: $error'),
@@ -79,7 +79,7 @@ class HomeScreenNew extends ConsumerWidget {
           end: Alignment.bottomRight,
           colors: [
             Theme.of(context).colorScheme.primary,
-            Theme.of(context).colorScheme.primary.withOpacity(0.7),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
           ],
         ),
       ),
@@ -118,7 +118,7 @@ class HomeScreenNew extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -160,7 +160,7 @@ class HomeScreenNew extends ConsumerWidget {
           end: Alignment.bottomRight,
           colors: [
             Theme.of(context).colorScheme.primary,
-            Theme.of(context).colorScheme.primary.withOpacity(0.7),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
           ],
         ),
       ),
@@ -197,7 +197,7 @@ class HomeScreenNew extends ConsumerWidget {
     );
   }
 
-  Widget _buildAchievementsGrid(List<Achievement> achievements) {
+  Widget _buildAchievementsGrid(BuildContext context, List<Achievement> achievements) {
     final unlockedAchievements = achievements.where((a) => a.unlocked).toList();
     final lockedAchievements = achievements.where((a) => !a.unlocked).toList();
     
@@ -224,7 +224,7 @@ class HomeScreenNew extends ConsumerWidget {
             ),
             itemCount: unlockedAchievements.length,
             itemBuilder: (context, index) {
-              return _buildAchievementCard(unlockedAchievements[index], true);
+              return _buildAchievementCard(context, unlockedAchievements[index], true);
             },
           ),
           const SizedBox(height: 24),
@@ -250,7 +250,7 @@ class HomeScreenNew extends ConsumerWidget {
             ),
             itemCount: lockedAchievements.length,
             itemBuilder: (context, index) {
-              return _buildAchievementCard(lockedAchievements[index], false);
+              return _buildAchievementCard(context, lockedAchievements[index], false);
             },
           ),
         ],
@@ -258,7 +258,7 @@ class HomeScreenNew extends ConsumerWidget {
     );
   }
 
-  Widget _buildAchievementCard(Achievement achievement, bool unlocked) {
+  Widget _buildAchievementCard(BuildContext context, Achievement achievement, bool unlocked) {
     return Card(
       elevation: unlocked ? 4 : 1,
       color: unlocked ? null : Colors.grey[200],
