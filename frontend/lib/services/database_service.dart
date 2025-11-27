@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/jump.dart';
 import '../models/equipment.dart';
 import '../models/profile.dart';
@@ -10,6 +13,7 @@ class DatabaseService {
   DatabaseService._internal();
 
   static Database? _database;
+  static bool _initialized = false;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -18,7 +22,25 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'skydive_tracker.db');
+    // Initialize FFI for desktop platforms
+    if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+      if (!_initialized) {
+        sqfliteFfiInit();
+        databaseFactory = databaseFactoryFfi;
+        _initialized = true;
+      }
+    }
+
+    String path;
+    if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+      // For desktop platforms, use a local directory
+      final directory = await getApplicationDocumentsDirectory();
+      path = join(directory.path, 'skydive_tracker.db');
+    } else {
+      // For mobile platforms, use the standard database path
+      path = join(await getDatabasesPath(), 'skydive_tracker.db');
+    }
+
     return await openDatabase(
       path,
       version: 1,
