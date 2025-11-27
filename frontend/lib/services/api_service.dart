@@ -3,13 +3,15 @@ import 'package:http/http.dart' as http;
 import '../models/jump.dart';
 import '../models/equipment.dart';
 import '../models/profile.dart';
+import '../config/api_config.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:8000/api/v1';
+  static String get baseUrl => ApiConfig.baseUrl;
   
   // Helper method for GET requests - returns dynamic to handle both Map and List
   Future<dynamic> _get(String endpoint) async {
-    final response = await http.get(Uri.parse('$baseUrl$endpoint'));
+    final url = '$baseUrl$endpoint';
+    final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       return json.decode(response.body);
     } else {
@@ -39,8 +41,9 @@ class ApiService {
 
   // Helper method for POST requests
   Future<dynamic> _post(String endpoint, Map<String, dynamic> data) async {
+    final url = '$baseUrl$endpoint';
     final response = await http.post(
-      Uri.parse('$baseUrl$endpoint'),
+      Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(data),
     );
@@ -53,8 +56,9 @@ class ApiService {
 
   // Helper method for PUT requests
   Future<dynamic> _put(String endpoint, Map<String, dynamic> data) async {
+    final url = '$baseUrl$endpoint';
     final response = await http.put(
-      Uri.parse('$baseUrl$endpoint'),
+      Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(data),
     );
@@ -67,7 +71,8 @@ class ApiService {
 
   // Helper method for DELETE requests
   Future<void> _delete(String endpoint) async {
-    final response = await http.delete(Uri.parse('$baseUrl$endpoint'));
+    final url = '$baseUrl$endpoint';
+    final response = await http.delete(Uri.parse(url));
     if (response.statusCode != 204 && response.statusCode != 200) {
       throw Exception('Failed to delete: ${response.statusCode}');
     }
