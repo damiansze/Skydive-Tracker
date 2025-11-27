@@ -81,6 +81,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       body: screens[_selectedIndex],
       floatingActionButton: FloatingActionButton(
+        heroTag: "main_fab",
         onPressed: () => _showAddDialog(context),
         child: const Icon(Icons.add),
       ),

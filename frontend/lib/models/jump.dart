@@ -1,9 +1,10 @@
 enum JumpType {
   TANDEM,
   SOLO,
-  PLANE,
-  HELICOPTER,
-  CLIFF,
+  AFF,
+  STATIC_LINE,
+  WINGSUIT,
+  OTHER,
 }
 
 extension JumpTypeExtension on JumpType {
@@ -13,12 +14,39 @@ extension JumpTypeExtension on JumpType {
         return 'Tandem';
       case JumpType.SOLO:
         return 'Solo';
-      case JumpType.PLANE:
+      case JumpType.AFF:
+        return 'AFF';
+      case JumpType.STATIC_LINE:
+        return 'Static Line';
+      case JumpType.WINGSUIT:
+        return 'Wingsuit';
+      case JumpType.OTHER:
+        return 'Sonstiges';
+    }
+  }
+}
+
+enum JumpMethod {
+  PLANE,
+  HELICOPTER,
+  BASE,
+  BALLOON,
+  OTHER,
+}
+
+extension JumpMethodExtension on JumpMethod {
+  String get displayName {
+    switch (this) {
+      case JumpMethod.PLANE:
         return 'Flugzeug';
-      case JumpType.HELICOPTER:
+      case JumpMethod.HELICOPTER:
         return 'Helikopter';
-      case JumpType.CLIFF:
-        return 'Klippe';
+      case JumpMethod.BASE:
+        return 'BASE Jump';
+      case JumpMethod.BALLOON:
+        return 'Ballon';
+      case JumpMethod.OTHER:
+        return 'Sonstiges';
     }
   }
 }
@@ -31,6 +59,7 @@ class Jump {
   final double? longitude;
   final int altitude;
   final JumpType? jumpType;
+  final JumpMethod? jumpMethod;
   final List<String> equipmentIds;
   final bool checklistCompleted;
   final String? notes;
@@ -44,6 +73,7 @@ class Jump {
     this.longitude,
     required this.altitude,
     this.jumpType,
+    this.jumpMethod,
     this.equipmentIds = const [],
     this.checklistCompleted = false,
     this.notes,
@@ -59,6 +89,7 @@ class Jump {
       'longitude': longitude,
       'altitude': altitude,
       'jump_type': jumpType?.toString().split('.').last.toLowerCase(),
+      'jump_method': jumpMethod?.toString().split('.').last.toLowerCase(),
       'checklist_completed': checklistCompleted ? 1 : 0,
       'notes': notes,
       'created_at': createdAt.toIso8601String(),
@@ -95,6 +126,19 @@ class Jump {
       }
     }
     
+    // Handle jump_method from backend
+    JumpMethod? jumpMethod;
+    if (map['jump_method'] != null) {
+      final methodString = map['jump_method'].toString().toLowerCase();
+      try {
+        jumpMethod = JumpMethod.values.firstWhere(
+          (e) => e.toString().split('.').last.toLowerCase() == methodString,
+        );
+      } catch (e) {
+        jumpMethod = null;
+      }
+    }
+    
     return Jump(
       id: map['id'] as String,
       date: DateTime.parse(map['date'] as String),
@@ -103,6 +147,7 @@ class Jump {
       longitude: map['longitude'] as double?,
       altitude: map['altitude'] as int,
       jumpType: jumpType,
+      jumpMethod: jumpMethod,
       equipmentIds: equipmentIds,
       checklistCompleted: checklistCompleted,
       notes: map['notes'] as String?,
@@ -118,6 +163,7 @@ class Jump {
     double? longitude,
     int? altitude,
     JumpType? jumpType,
+    JumpMethod? jumpMethod,
     List<String>? equipmentIds,
     bool? checklistCompleted,
     String? notes,
@@ -131,6 +177,7 @@ class Jump {
       longitude: longitude ?? this.longitude,
       altitude: altitude ?? this.altitude,
       jumpType: jumpType ?? this.jumpType,
+      jumpMethod: jumpMethod ?? this.jumpMethod,
       equipmentIds: equipmentIds ?? this.equipmentIds,
       checklistCompleted: checklistCompleted ?? this.checklistCompleted,
       notes: notes ?? this.notes,

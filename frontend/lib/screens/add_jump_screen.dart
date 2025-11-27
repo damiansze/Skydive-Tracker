@@ -31,6 +31,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   double? _longitude;
   LatLng? _currentLocation;
   JumpType? _selectedJumpType;
+  JumpMethod? _selectedJumpMethod;
   
   Set<String> _selectedEquipmentIds = {};
   Map<String, bool> _checklistItems = {};
@@ -59,6 +60,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     _latitude = jump.latitude;
     _longitude = jump.longitude;
     _selectedJumpType = jump.jumpType;
+    _selectedJumpMethod = jump.jumpMethod;
     _selectedEquipmentIds = jump.equipmentIds.toSet();
     
     if (_latitude != null && _longitude != null) {
@@ -226,6 +228,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           longitude: _longitude,
           altitude: int.parse(_altitudeController.text),
           jumpType: _selectedJumpType,
+          jumpMethod: _selectedJumpMethod,
           equipmentIds: _selectedEquipmentIds.toList(),
           checklistCompleted: _checklistItems.values.every((v) => v),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
@@ -239,6 +242,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           longitude: _longitude,
           altitude: int.parse(_altitudeController.text),
           jumpType: _selectedJumpType,
+          jumpMethod: _selectedJumpMethod,
           equipmentIds: _selectedEquipmentIds.toList(),
           checklistCompleted: _checklistItems.values.every((v) => v),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
@@ -391,6 +395,28 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                 onChanged: (value) {
                   setState(() {
                     _selectedJumpType = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              // Jump Method
+              DropdownButtonFormField<JumpMethod>(
+                value: _selectedJumpMethod,
+                decoration: const InputDecoration(
+                  labelText: 'Sprungmethode',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.airplanemode_active),
+                ),
+                items: JumpMethod.values.map((method) {
+                  return DropdownMenuItem(
+                    value: method,
+                    child: Text(method.displayName),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedJumpMethod = value;
                   });
                 },
               ),

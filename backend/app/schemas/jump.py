@@ -2,7 +2,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
-from app.models.jump import JumpType
+from app.models.jump import JumpType, JumpMethod
 
 class JumpBase(BaseModel):
     date: datetime
@@ -11,6 +11,7 @@ class JumpBase(BaseModel):
     longitude: Optional[float] = None
     altitude: int = Field(..., gt=0)
     jump_type: Optional[JumpType] = None
+    jump_method: Optional[JumpMethod] = None
     equipment_ids: List[str] = []
     checklist_completed: bool = False
     notes: Optional[str] = None
@@ -25,6 +26,7 @@ class JumpUpdate(BaseModel):
     longitude: Optional[float] = None
     altitude: Optional[int] = Field(None, gt=0)
     jump_type: Optional[JumpType] = None
+    jump_method: Optional[JumpMethod] = None
     equipment_ids: Optional[List[str]] = None
     checklist_completed: Optional[bool] = None
     notes: Optional[str] = None

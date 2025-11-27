@@ -40,7 +40,7 @@ List<Achievement> _calculateAchievements(List<Jump> jumps) {
   achievements.add(fiveLocationsAchievement);
   
   // First Helicopter Achievement
-  final hasHelicopterJump = jumps.any((j) => j.jumpType == JumpType.HELICOPTER);
+  final hasHelicopterJump = jumps.any((j) => j.jumpMethod == JumpMethod.HELICOPTER);
   final firstHelicopterAchievement = Achievement(
     type: AchievementType.FIRST_HELICOPTER,
     title: 'Erstes Mal Helikopter',
@@ -48,13 +48,13 @@ List<Achievement> _calculateAchievements(List<Jump> jumps) {
     icon: '🚁',
     unlocked: hasHelicopterJump,
     unlockedAt: hasHelicopterJump 
-        ? jumps.firstWhere((j) => j.jumpType == JumpType.HELICOPTER).date 
+        ? jumps.firstWhere((j) => j.jumpMethod == JumpMethod.HELICOPTER).date 
         : null,
   );
   achievements.add(firstHelicopterAchievement);
   
   // First Plane Achievement
-  final hasPlaneJump = jumps.any((j) => j.jumpType == JumpType.PLANE);
+  final hasPlaneJump = jumps.any((j) => j.jumpMethod == JumpMethod.PLANE);
   final firstPlaneAchievement = Achievement(
     type: AchievementType.FIRST_PLANE,
     title: 'Erstes Mal Flugzeug',
@@ -62,24 +62,24 @@ List<Achievement> _calculateAchievements(List<Jump> jumps) {
     icon: '✈️',
     unlocked: hasPlaneJump,
     unlockedAt: hasPlaneJump 
-        ? jumps.firstWhere((j) => j.jumpType == JumpType.PLANE).date 
+        ? jumps.firstWhere((j) => j.jumpMethod == JumpMethod.PLANE).date 
         : null,
   );
   achievements.add(firstPlaneAchievement);
   
-  // First Cliff Achievement
-  final hasCliffJump = jumps.any((j) => j.jumpType == JumpType.CLIFF);
-  final firstCliffAchievement = Achievement(
+  // First BASE Achievement
+  final hasBaseJump = jumps.any((j) => j.jumpMethod == JumpMethod.BASE);
+  final firstBaseAchievement = Achievement(
     type: AchievementType.FIRST_CLIFF,
-    title: 'Erstes Mal Klippe',
-    description: 'Du hast deinen ersten Klippen-Sprung gemacht!',
+    title: 'Erstes Mal BASE Jump',
+    description: 'Du hast deinen ersten BASE Jump gemacht!',
     icon: '⛰️',
-    unlocked: hasCliffJump,
-    unlockedAt: hasCliffJump 
-        ? jumps.firstWhere((j) => j.jumpType == JumpType.CLIFF).date 
+    unlocked: hasBaseJump,
+    unlockedAt: hasBaseJump 
+        ? jumps.firstWhere((j) => j.jumpMethod == JumpMethod.BASE).date 
         : null,
   );
-  achievements.add(firstCliffAchievement);
+  achievements.add(firstBaseAchievement);
   
   return achievements;
 }
