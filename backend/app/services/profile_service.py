@@ -23,6 +23,8 @@ class ProfileService:
             profile.name = profile_data.name
             profile.license_number = profile_data.license_number
             profile.license_type = profile_data.license_type
+            if profile_data.profile_picture_url is not None:
+                profile.profile_picture_url = profile_data.profile_picture_url
         else:
             # Create new profile
             profile = Profile(**profile_data.dict())

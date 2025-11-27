@@ -124,6 +124,27 @@ class ApiService {
     return Profile.fromMap(data);
   }
 
+  Future<String> uploadProfilePicture(String imagePath) async {
+    final url = '$baseUrl/profile/upload-picture';
+    final request = http.MultipartRequest('POST', Uri.parse(url));
+    request.files.add(await http.MultipartFile.fromPath('file', imagePath));
+    
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      final relativeUrl = data['profile_picture_url'] as String;
+      // Build full URL - relativeUrl is already /api/v1/profile/picture/{filename}
+      // baseUrl is http://host:port/api/v1, so we need to replace /api/v1 with relativeUrl
+      final baseWithoutApi = baseUrl.replaceAll('/api/v1', '');
+      return '$baseWithoutApi$relativeUrl';
+    } else {
+      final errorBody = response.body;
+      throw Exception('Failed to upload picture: ${response.statusCode} - $errorBody');
+    }
+  }
+
   // Equipment methods
   Future<List<Equipment>> getAllEquipment() async {
     final List<dynamic> data = await _getList('/equipment/');
@@ -243,5 +264,10 @@ class ApiService {
     final data = await _getMap('/statistics/summary');
     final locations = data['locations'] as List<dynamic>;
     return locations.map((e) => e as String).toList();
+  }
+
+  Future<Map<String, dynamic>> getStatisticsSummary({String? locationFilter}) async {
+    final queryParam = locationFilter != null ? '?location=$locationFilter' : '';
+    return await _getMap('/statistics/summary$queryParam');
   }
 }

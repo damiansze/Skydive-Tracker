@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart';
 import '../models/jump.dart';
 import '../providers/jump_provider.dart';
 import '../services/jump_service.dart';
 import '../providers/database_provider.dart';
+import '../services/api_service.dart';
 import 'add_jump_screen.dart';
 
 final distinctLocationsProvider = FutureProvider<List<String>>((ref) async {
@@ -15,6 +18,11 @@ final distinctLocationsProvider = FutureProvider<List<String>>((ref) async {
 final totalJumpsProvider = FutureProvider.family<int, String?>((ref, locationFilter) async {
   final service = ref.read(jumpServiceProvider);
   return await service.getTotalJumps(locationFilter: locationFilter);
+});
+
+final statisticsSummaryProvider = FutureProvider.family<Map<String, dynamic>, String?>((ref, locationFilter) async {
+  final api = ref.read(apiServiceProvider);
+  return await api.getStatisticsSummary(locationFilter: locationFilter);
 });
 
 class StatisticsScreen extends ConsumerStatefulWidget {
@@ -90,6 +98,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     final jumpsAsync = ref.watch(jumpNotifierProvider);
     final locationsAsync = ref.watch(distinctLocationsProvider);
     final totalJumpsAsync = ref.watch(totalJumpsProvider(_selectedLocationFilter));
+    final statisticsSummaryAsync = ref.watch(statisticsSummaryProvider(_selectedLocationFilter));
 
     return Scaffold(
       appBar: AppBar(
@@ -97,82 +106,232 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       ),
       body: jumpsAsync.when(
         data: (jumps) {
-          return Column(
-            children: [
-              // Statistics Card
-              Card(
-                margin: const EdgeInsets.all(16.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Statistiken',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                // Statistics Card
+                Card(
+                  margin: const EdgeInsets.all(16.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Statistiken',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Column(
-                            children: [
-                              totalJumpsAsync.when(
-                                data: (totalJumps) => Text(
-                                  '$totalJumps',
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                loading: () => const CircularProgressIndicator(),
-                                error: (_, __) => const Text('?'),
-                              ),
-                              Text(
-                                _selectedLocationFilter != null
-                                    ? 'Sprünge in\n$_selectedLocationFilter'
-                                    : 'Gesamte Sprünge',
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                          locationsAsync.when(
-                            data: (locations) => Column(
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Column(
                               children: [
+                                totalJumpsAsync.when(
+                                  data: (totalJumps) => Text(
+                                    '$totalJumps',
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  loading: () => const CircularProgressIndicator(),
+                                  error: (_, __) => const Text('?'),
+                                ),
                                 Text(
-                                  '${locations.length}',
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  _selectedLocationFilter != null
+                                      ? 'Sprünge in\n$_selectedLocationFilter'
+                                      : 'Gesamte Sprünge',
+                                  textAlign: TextAlign.center,
                                 ),
-                                const Text('Sprungplätze'),
                               ],
                             ),
-                            loading: () => const Column(
+                            locationsAsync.when(
+                              data: (locations) => Column(
+                                children: [
+                                  Text(
+                                    '${locations.length}',
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Text('Sprungplätze'),
+                                ],
+                              ),
+                              loading: () => const Column(
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 8),
+                                  Text('Sprungplätze'),
+                                ],
+                              ),
+                              error: (_, __) => const Column(
+                                children: [
+                                  Icon(Icons.error),
+                                  SizedBox(height: 8),
+                                  Text('Sprungplätze'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(),
+                        const SizedBox(height: 16),
+                        // Jump Type and Method Statistics
+                        statisticsSummaryAsync.when(
+                          data: (summary) {
+                            final jumpTypeCounts = summary['jump_type_counts'] as Map<String, dynamic>? ?? {};
+                            final jumpMethodCounts = summary['jump_method_counts'] as Map<String, dynamic>? ?? {};
+                            
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                CircularProgressIndicator(),
-                                SizedBox(height: 8),
-                                Text('Sprungplätze'),
+                                if (jumpTypeCounts.isNotEmpty) ...[
+                                  const Text(
+                                    'Sprungtypen',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 4,
+                                    children: jumpTypeCounts.entries.map((entry) {
+                                      final typeString = entry.key;
+                                      final count = entry.value as int;
+                                      JumpType? type;
+                                      try {
+                                        type = JumpType.values.firstWhere(
+                                          (e) => e.toString().split('.').last.toLowerCase() == typeString,
+                                        );
+                                      } catch (e) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return Chip(
+                                        label: Text('${type.displayName}: $count'),
+                                        avatar: const Icon(Icons.paragliding, size: 18),
+                                      );
+                                    }).toList(),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                                if (jumpMethodCounts.isNotEmpty) ...[
+                                  const Text(
+                                    'Sprungmethoden',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 4,
+                                    children: jumpMethodCounts.entries.map((entry) {
+                                      final methodString = entry.key;
+                                      final count = entry.value as int;
+                                      JumpMethod? method;
+                                      try {
+                                        method = JumpMethod.values.firstWhere(
+                                          (e) => e.toString().split('.').last.toLowerCase() == methodString,
+                                        );
+                                      } catch (e) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return Chip(
+                                        label: Text('${method.displayName}: $count'),
+                                        avatar: Icon(
+                                          method == JumpMethod.PLANE 
+                                              ? Icons.flight 
+                                              : method == JumpMethod.HELICOPTER
+                                                  ? Icons.airplanemode_active
+                                                  : method == JumpMethod.BASE
+                                                      ? Icons.landscape
+                                                      : Icons.location_on,
+                                          size: 18,
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
                               ],
-                            ),
-                            error: (_, __) => const Column(
-                              children: [
-                                Icon(Icons.error),
-                                SizedBox(height: 8),
-                                Text('Sprungplätze'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            );
+                          },
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+                
+                // Map with jump locations
+                statisticsSummaryAsync.when(
+                  data: (summary) {
+                    final locationsWithCoords = summary['locations_with_coords'] as List<dynamic>? ?? [];
+                    if (locationsWithCoords.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    
+                    // Calculate center and bounds
+                    final points = locationsWithCoords.map((loc) {
+                      return LatLng(
+                        loc['latitude'] as double,
+                        loc['longitude'] as double,
+                      );
+                    }).toList();
+                    
+                    double avgLat = points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length;
+                    double avgLng = points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length;
+                    
+                    return Card(
+                      margin: const EdgeInsets.all(16.0),
+                      child: SizedBox(
+                        height: 300,
+                        child: FlutterMap(
+                          options: MapOptions(
+                            initialCenter: LatLng(avgLat, avgLng),
+                            initialZoom: 5.0,
+                            minZoom: 3.0,
+                            maxZoom: 18.0,
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.example.flutter_skydive_tracker',
+                            ),
+                            MarkerLayer(
+                              markers: locationsWithCoords.map((loc) {
+                                return Marker(
+                                  point: LatLng(
+                                    loc['latitude'] as double,
+                                    loc['longitude'] as double,
+                                  ),
+                                  width: 40,
+                                  height: 40,
+                                  child: const Icon(
+                                    Icons.paragliding,
+                                    color: Colors.red,
+                                    size: 30,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
               
               // Filter
               Padding(
@@ -210,101 +369,110 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
               const SizedBox(height: 16),
               
               // Jumps List
-              Expanded(
-                child: jumps.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.flight_takeoff,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Noch keine Sprünge erfasst',
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          ref.read(jumpNotifierProvider.notifier).refresh();
-                        },
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          itemCount: jumps.length,
-                          itemBuilder: (context, index) {
-                            final jump = jumps[index];
-                            return Card(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
-                                vertical: 4.0,
-                              ),
-                              child: ListTile(
-                                leading: const Icon(Icons.flight_takeoff),
-                                title: Text(jump.location),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      DateFormat('dd.MM.yyyy HH:mm')
-                                          .format(jump.date),
-                                    ),
-                                    Text('Höhe: ${jump.altitude} m'),
-                                    if (jump.checklistCompleted)
-                                      const Row(
-                                        children: [
-                                          Icon(Icons.check_circle,
-                                              size: 16, color: Colors.green),
-                                          SizedBox(width: 4),
-                                          Text('Checkliste abgeschlossen',
-                                              style: TextStyle(fontSize: 12)),
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                                trailing: PopupMenuButton(
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.edit),
-                                          SizedBox(width: 8),
-                                          Text('Bearbeiten'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.delete, color: Colors.red),
-                                          SizedBox(width: 8),
-                                          Text('Löschen',
-                                              style: TextStyle(color: Colors.red)),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                  onSelected: (value) {
-                                    if (value == 'edit') {
-                                      _editJump(jump);
-                                    } else if (value == 'delete') {
-                                      _deleteJump(jump);
-                                    }
-                                  },
-                                ),
-                                onTap: () => _editJump(jump),
-                              ),
-                            );
-                          },
-                        ),
+              if (jumps.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.paragliding,
+                        size: 64,
+                        color: Colors.grey[400],
                       ),
-              ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Noch keine Sprünge erfasst',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ...jumps.map((jump) {
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 4.0,
+                    ),
+                    child: ListTile(
+                      leading: const Icon(Icons.paragliding),
+                      title: Text(jump.location),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateFormat('dd.MM.yyyy HH:mm')
+                                .format(jump.date),
+                          ),
+                          Text('Höhe: ${jump.altitude} m'),
+                          if (jump.jumpType != null || jump.jumpMethod != null)
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                if (jump.jumpType != null)
+                                  Chip(
+                                    label: Text(jump.jumpType!.displayName),
+                                    labelStyle: const TextStyle(fontSize: 11),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                if (jump.jumpMethod != null)
+                                  Chip(
+                                    label: Text(jump.jumpMethod!.displayName),
+                                    labelStyle: const TextStyle(fontSize: 11),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                              ],
+                            ),
+                          if (jump.checklistCompleted)
+                            const Row(
+                              children: [
+                                Icon(Icons.check_circle,
+                                    size: 16, color: Colors.green),
+                                SizedBox(width: 4),
+                                Text('Checkliste abgeschlossen',
+                                    style: TextStyle(fontSize: 12)),
+                              ],
+                            ),
+                        ],
+                      ),
+                      trailing: PopupMenuButton(
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit),
+                                SizedBox(width: 8),
+                                Text('Bearbeiten'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Löschen',
+                                    style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            _editJump(jump);
+                          } else if (value == 'delete') {
+                            _deleteJump(jump);
+                          }
+                        },
+                      ),
+                      onTap: () => _editJump(jump),
+                    ),
+                  );
+                }).toList(),
+              const SizedBox(height: 16),
             ],
           );
         },

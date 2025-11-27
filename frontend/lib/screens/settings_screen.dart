@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../models/profile.dart';
 import '../providers/profile_provider.dart';
+import '../services/api_service.dart';
+import '../providers/database_provider.dart';
 import 'profile_screen.dart';
 
 final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
@@ -44,6 +46,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final profileAsync = ref.read(profileNotifierProvider);
     
     profileAsync.whenData((profile) async {
+      if (profile == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Bitte erstelle zuerst ein Profil'),
+            ),
+          );
+        }
+        return;
+      }
+
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 800,
@@ -52,13 +65,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
 
       if (image != null && mounted) {
-        // TODO: Upload image to backend and get URL
-        // For now, we'll just show a message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bild-Upload wird noch implementiert'),
-          ),
-        );
+        try {
+          // Show loading indicator
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+
+          final api = ref.read(apiServiceProvider);
+          final pictureUrl = await api.uploadProfilePicture(image.path);
+          
+          // Update profile with new picture URL
+          final updatedProfile = profile.copyWith(profilePictureUrl: pictureUrl);
+          await ref.read(profileNotifierProvider.notifier).updateProfile(updatedProfile);
+          
+          if (mounted) {
+            Navigator.of(context).pop(); // Close loading dialog
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Profilbild erfolgreich hochgeladen'),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            Navigator.of(context).pop(); // Close loading dialog
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Fehler beim Hochladen: $e'),
+              ),
+            );
+          }
+        }
       }
     });
   }

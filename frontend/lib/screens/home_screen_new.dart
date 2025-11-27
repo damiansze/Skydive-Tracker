@@ -4,6 +4,7 @@ import '../models/profile.dart';
 import '../providers/profile_provider.dart';
 import '../providers/achievement_provider.dart';
 import '../models/achievement.dart';
+import '../config/api_config.dart';
 
 class HomeScreenNew extends ConsumerWidget {
   const HomeScreenNew({super.key});
@@ -90,8 +91,15 @@ class HomeScreenNew extends ConsumerWidget {
             radius: 50,
             backgroundColor: Colors.white,
             backgroundImage: profile.profilePictureUrl != null
-                ? NetworkImage(profile.profilePictureUrl!)
+                ? NetworkImage(
+                    profile.profilePictureUrl!.startsWith('http')
+                        ? profile.profilePictureUrl!
+                        : '${ApiConfig.baseUrl.replaceAll('/api/v1', '')}${profile.profilePictureUrl!}',
+                  )
                 : null,
+            onBackgroundImageError: (exception, stackTrace) {
+                  // Handle image loading errors gracefully
+                },
             child: profile.profilePictureUrl == null
                 ? Icon(
                     Icons.person,

@@ -48,4 +48,51 @@ class GeocodingService {
       return null;
     }
   }
+
+  /// Get address suggestions for autocomplete
+  static Future<List<String>> getAddressSuggestions(String query) async {
+    if (query.length < 3) {
+      return [];
+    }
+    
+    try {
+      List<Location> locations = await locationFromAddress(query);
+      List<String> suggestions = [];
+      
+      for (var location in locations.take(5)) {
+        // Get placemark for each location to get readable address
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          location.latitude,
+          location.longitude,
+        );
+        
+        if (placemarks.isNotEmpty) {
+          final placemark = placemarks.first;
+          final parts = <String>[];
+          if (placemark.street != null && placemark.street!.isNotEmpty) {
+            parts.add(placemark.street!);
+          }
+          if (placemark.locality != null && placemark.locality!.isNotEmpty) {
+            parts.add(placemark.locality!);
+          } else if (placemark.subAdministrativeArea != null && placemark.subAdministrativeArea!.isNotEmpty) {
+            parts.add(placemark.subAdministrativeArea!);
+          }
+          if (placemark.country != null && placemark.country!.isNotEmpty) {
+            parts.add(placemark.country!);
+          }
+          
+          if (parts.isNotEmpty) {
+            final address = parts.join(', ');
+            if (!suggestions.contains(address)) {
+              suggestions.add(address);
+            }
+          }
+        }
+      }
+      
+      return suggestions;
+    } catch (e) {
+      return [];
+    }
+  }
 }

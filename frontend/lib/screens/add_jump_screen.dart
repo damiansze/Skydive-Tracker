@@ -36,6 +36,8 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   Set<String> _selectedEquipmentIds = {};
   Map<String, bool> _checklistItems = {};
   bool _isGeocoding = false;
+  List<String> _locationSuggestions = [];
+  bool _showSuggestions = false;
 
   @override
   void initState() {
@@ -105,10 +107,29 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   }
 
   Future<void> _onLocationChanged() async {
+    final locationText = _locationController.text.trim();
+    
+    // Get suggestions for autocomplete
+    if (locationText.length >= 3) {
+      final suggestions = await GeocodingService.getAddressSuggestions(locationText);
+      if (mounted) {
+        setState(() {
+          _locationSuggestions = suggestions;
+          _showSuggestions = suggestions.isNotEmpty;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _locationSuggestions = [];
+          _showSuggestions = false;
+        });
+      }
+    }
+    
     // Debounce geocoding to avoid too many API calls
     if (_isGeocoding) return;
     
-    final locationText = _locationController.text.trim();
     if (locationText.length < 3) return; // Wait for at least 3 characters
     
     // Wait a bit before geocoding
@@ -139,6 +160,16 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
         });
       }
     }
+  }
+  
+  void _selectLocationSuggestion(String suggestion) {
+    setState(() {
+      _locationController.text = suggestion;
+      _showSuggestions = false;
+      _locationSuggestions = [];
+    });
+    // Trigger geocoding for selected suggestion
+    _onLocationChanged();
   }
 
   Future<void> _selectDate() async {
@@ -306,30 +337,86 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
               ),
               const SizedBox(height: 16),
               
-              // Location
-              TextFormField(
-                controller: _locationController,
-                decoration: InputDecoration(
-                  labelText: 'Ort *',
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.location_on),
-                  suffixIcon: _isGeocoding
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: CircularProgressIndicator(strokeWidth: 2),
+              // Location with Autocomplete
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: _locationController,
+                    decoration: InputDecoration(
+                      labelText: 'Ort *',
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.location_on),
+                      suffixIcon: _isGeocoding
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: Padding(
+                                padding: EdgeInsets.all(12.0),
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : null,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Bitte geben Sie einen Ort ein';
+                      }
+                      return null;
+                    },
+                    onTap: () {
+                      setState(() {
+                        if (_locationController.text.length >= 3) {
+                          _showSuggestions = _locationSuggestions.isNotEmpty;
+                        }
+                      });
+                    },
+                    onChanged: (value) {
+                      _onLocationChanged();
+                    },
+                    onTapOutside: (event) {
+                      // Hide suggestions when tapping outside
+                      setState(() {
+                        _showSuggestions = false;
+                      });
+                    },
+                  ),
+                  if (_showSuggestions && _locationSuggestions.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
-                        )
-                      : null,
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Bitte geben Sie einen Ort ein';
-                  }
-                  return null;
-                },
+                        ],
+                      ),
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _locationSuggestions.length,
+                        itemBuilder: (context, index) {
+                          final suggestion = _locationSuggestions[index];
+                          return ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.location_on, size: 20),
+                            title: Text(
+                              suggestion,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            onTap: () {
+                              _selectLocationSuggestion(suggestion);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 16),
               
