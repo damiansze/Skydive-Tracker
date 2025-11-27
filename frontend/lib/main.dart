@@ -5,10 +5,9 @@ import 'screens/home_screen.dart';
 
 void main() {
   // Initialize FFI for desktop platforms
-  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  }
+
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
   
   runApp(const MyApp());
 }
