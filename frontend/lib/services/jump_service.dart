@@ -16,7 +16,6 @@ class JumpService {
     JumpType? jumpType,
     JumpMethod? jumpMethod,
     List<String> equipmentIds = const [],
-    bool checklistCompleted = false,
     String? notes,
   }) async {
     final jump = await _api.createJump(
@@ -28,7 +27,6 @@ class JumpService {
       jumpType: jumpType,
       jumpMethod: jumpMethod,
       equipmentIds: equipmentIds,
-      checklistCompleted: checklistCompleted,
       notes: notes,
     );
     return jump.id;

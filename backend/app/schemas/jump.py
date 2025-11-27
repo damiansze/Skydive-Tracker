@@ -13,7 +13,7 @@ class JumpBase(BaseModel):
     jump_type: Optional[JumpType] = None
     jump_method: Optional[JumpMethod] = None
     equipment_ids: List[str] = []
-    checklist_completed: bool = False
+    checklist_completed: Optional[bool] = None  # Deprecated - kept for backward compatibility, ignored
     notes: Optional[str] = None
 
 class JumpCreate(JumpBase):
@@ -28,7 +28,7 @@ class JumpUpdate(BaseModel):
     jump_type: Optional[JumpType] = None
     jump_method: Optional[JumpMethod] = None
     equipment_ids: Optional[List[str]] = None
-    checklist_completed: Optional[bool] = None
+    checklist_completed: Optional[bool] = None  # Deprecated - kept for backward compatibility, ignored
     notes: Optional[str] = None
 
 class JumpResponse(JumpBase):

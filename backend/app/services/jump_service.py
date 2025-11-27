@@ -43,7 +43,7 @@ class JumpService:
             altitude=jump_data.altitude,
             jump_type=jump_data.jump_type,
             jump_method=jump_data.jump_method,
-            checklist_completed=jump_data.checklist_completed,
+            # checklist_completed is deprecated and ignored - always defaults to False
             notes=jump_data.notes,
         )
         

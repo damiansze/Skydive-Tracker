@@ -61,7 +61,6 @@ class Jump {
   final JumpType? jumpType;
   final JumpMethod? jumpMethod;
   final List<String> equipmentIds;
-  final bool checklistCompleted;
   final String? notes;
   final DateTime createdAt;
 
@@ -75,7 +74,6 @@ class Jump {
     this.jumpType,
     this.jumpMethod,
     this.equipmentIds = const [],
-    this.checklistCompleted = false,
     this.notes,
     required this.createdAt,
   });
@@ -90,23 +88,12 @@ class Jump {
       'altitude': altitude,
       'jump_type': jumpType?.toString().split('.').last.toLowerCase(),
       'jump_method': jumpMethod?.toString().split('.').last.toLowerCase(),
-      'checklist_completed': checklistCompleted ? 1 : 0,
       'notes': notes,
       'created_at': createdAt.toIso8601String(),
     };
   }
 
   factory Jump.fromMap(Map<String, dynamic> map) {
-    // Handle both int and bool for checklist_completed
-    bool checklistCompleted = false;
-    if (map['checklist_completed'] != null) {
-      if (map['checklist_completed'] is bool) {
-        checklistCompleted = map['checklist_completed'] as bool;
-      } else {
-        checklistCompleted = (map['checklist_completed'] as int) == 1;
-      }
-    }
-    
     // Handle equipment_ids from backend
     List<String> equipmentIds = [];
     if (map['equipment_ids'] != null) {
@@ -149,7 +136,6 @@ class Jump {
       jumpType: jumpType,
       jumpMethod: jumpMethod,
       equipmentIds: equipmentIds,
-      checklistCompleted: checklistCompleted,
       notes: map['notes'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
     );
@@ -165,7 +151,6 @@ class Jump {
     JumpType? jumpType,
     JumpMethod? jumpMethod,
     List<String>? equipmentIds,
-    bool? checklistCompleted,
     String? notes,
     DateTime? createdAt,
   }) {
@@ -179,7 +164,6 @@ class Jump {
       jumpType: jumpType ?? this.jumpType,
       jumpMethod: jumpMethod ?? this.jumpMethod,
       equipmentIds: equipmentIds ?? this.equipmentIds,
-      checklistCompleted: checklistCompleted ?? this.checklistCompleted,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
     );

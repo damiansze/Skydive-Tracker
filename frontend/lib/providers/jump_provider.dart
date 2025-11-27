@@ -45,7 +45,6 @@ class JumpNotifier extends StateNotifier<AsyncValue<List<Jump>>> {
     JumpType? jumpType,
     JumpMethod? jumpMethod,
     List<String> equipmentIds = const [],
-    bool checklistCompleted = false,
     String? notes,
   }) async {
     try {
@@ -58,7 +57,6 @@ class JumpNotifier extends StateNotifier<AsyncValue<List<Jump>>> {
         jumpType: jumpType,
         jumpMethod: jumpMethod,
         equipmentIds: equipmentIds,
-        checklistCompleted: checklistCompleted,
         notes: notes,
       );
       await _loadJumps();

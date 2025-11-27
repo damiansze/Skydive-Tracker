@@ -231,6 +231,23 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     // Family provider will automatically reload with new filter key
   }
 
+  void _clearAllFilters() {
+    setState(() {
+      _selectedLocationFilter = null;
+      _selectedJumpTypeFilter = null;
+      _selectedJumpMethodFilter = null;
+      _cachedFilters = null; // Reset cache to create new filter object
+    });
+    ref.read(jumpNotifierProvider.notifier).setLocationFilter(null);
+    // Family providers will automatically reload with new filter key
+  }
+
+  bool get _hasActiveFilters {
+    return _selectedLocationFilter != null ||
+           _selectedJumpTypeFilter != null ||
+           _selectedJumpMethodFilter != null;
+  }
+
   Future<void> _editJump(Jump jump) async {
     final result = await Navigator.push(
       context,
@@ -292,6 +309,14 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Statistik & Übersicht'),
+        actions: [
+          if (_hasActiveFilters)
+            IconButton(
+              icon: const Icon(Icons.clear_all),
+              tooltip: 'Alle Filter zurücksetzen',
+              onPressed: _clearAllFilters,
+            ),
+        ],
       ),
       body: jumpsAsync.when(
         data: (allJumps) {
@@ -667,37 +692,73 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                   ),
                 ),
               
-              // Filter
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: locationsAsync.when(
-                  data: (locations) => DropdownButtonFormField<String>(
-                    initialValue: _selectedLocationFilter,
-                    decoration: const InputDecoration(
-                      labelText: 'Nach Ort filtern',
-                      border: OutlineInputBorder(),
-                      icon: Icon(Icons.filter_list),
-                    ),
-                    isExpanded: true,
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: null,
-                        child: Text('Alle Orte'),
-                      ),
-                      ...locations.map((location) {
-                        return DropdownMenuItem<String>(
-                          value: location,
-                          child: Text(
-                            location,
-                            overflow: TextOverflow.ellipsis,
+              // Filter Section
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.filter_list),
+                              SizedBox(width: 8),
+                              Text(
+                                'Filter',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      }),
+                          if (_hasActiveFilters)
+                            TextButton.icon(
+                              onPressed: _clearAllFilters,
+                              icon: const Icon(Icons.clear_all, size: 18),
+                              label: const Text('Alle zurücksetzen'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      locationsAsync.when(
+                        data: (locations) => DropdownButtonFormField<String>(
+                          value: _selectedLocationFilter,
+                          decoration: const InputDecoration(
+                            labelText: 'Nach Ort filtern',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.location_on),
+                          ),
+                          isExpanded: true,
+                          items: [
+                            const DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('Alle Orte'),
+                            ),
+                            ...locations.map((location) {
+                              return DropdownMenuItem<String>(
+                                value: location,
+                                child: Text(
+                                  location,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }),
+                          ],
+                          onChanged: _onLocationFilterChanged,
+                        ),
+                        loading: () => const LinearProgressIndicator(),
+                        error: (_, __) => const Text('Fehler beim Laden der Orte'),
+                      ),
                     ],
-                    onChanged: _onLocationFilterChanged,
                   ),
-                  loading: () => const LinearProgressIndicator(),
-                  error: (_, __) => const Text('Fehler beim Laden der Orte'),
                 ),
               ),
               const SizedBox(height: 16),
@@ -762,16 +823,6 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                       padding: EdgeInsets.zero,
                                     ),
                                   ),
-                              ],
-                            ),
-                          if (jump.checklistCompleted)
-                            const Row(
-                              children: [
-                                Icon(Icons.check_circle,
-                                    size: 16, color: Colors.green),
-                                SizedBox(width: 4),
-                                Text('Checkliste abgeschlossen',
-                                    style: TextStyle(fontSize: 12)),
                               ],
                             ),
                         ],

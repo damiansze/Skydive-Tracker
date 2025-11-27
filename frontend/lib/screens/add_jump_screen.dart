@@ -272,7 +272,6 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           jumpType: _selectedJumpType,
           jumpMethod: _selectedJumpMethod,
           equipmentIds: _selectedEquipmentIds.toList(),
-          checklistCompleted: _checklistItems.values.every((v) => v),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         );
         await jumpNotifier.updateJump(updatedJump);
@@ -286,7 +285,6 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           jumpType: _selectedJumpType,
           jumpMethod: _selectedJumpMethod,
           equipmentIds: _selectedEquipmentIds.toList(),
-          checklistCompleted: _selectedEquipmentIds.isNotEmpty, // Equipment was selected
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         );
       }

@@ -213,7 +213,6 @@ class ApiService {
     JumpType? jumpType,
     JumpMethod? jumpMethod,
     List<String> equipmentIds = const [],
-    bool checklistCompleted = false,
     String? notes,
   }) async {
     final jumpMap = {
@@ -225,7 +224,6 @@ class ApiService {
       'jump_type': jumpType?.toString().split('.').last.toLowerCase(),
       'jump_method': jumpMethod?.toString().split('.').last.toLowerCase(),
       'equipment_ids': equipmentIds,
-      'checklist_completed': checklistCompleted,
       'notes': notes,
     };
     final data = await _post('/jumps/', jumpMap) as Map<String, dynamic>;
@@ -242,7 +240,6 @@ class ApiService {
       'jump_type': jump.jumpType?.toString().split('.').last.toLowerCase(),
       'jump_method': jump.jumpMethod?.toString().split('.').last.toLowerCase(),
       'equipment_ids': jump.equipmentIds,
-      'checklist_completed': jump.checklistCompleted,
       'notes': jump.notes,
     };
     final data = await _put('/jumps/${jump.id}', jumpMap) as Map<String, dynamic>;
