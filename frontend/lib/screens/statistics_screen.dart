@@ -95,17 +95,115 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   void _centerMapOnLocations(List<dynamic> locationsWithCoords) {
     if (locationsWithCoords.isEmpty) return;
     
-    final points = locationsWithCoords.map((loc) {
-      return LatLng(
-        loc['latitude'] as double,
-        loc['longitude'] as double,
-      );
-    }).toList();
+    final points = <LatLng>[];
+    for (final loc in locationsWithCoords) {
+      try {
+        final lat = loc['latitude'] as num?;
+        final lng = loc['longitude'] as num?;
+        if (lat != null && lng != null) {
+          points.add(LatLng(lat.toDouble(), lng.toDouble()));
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    
+    if (points.isEmpty) return;
     
     double avgLat = points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length;
     double avgLng = points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length;
     
     _mapController.move(LatLng(avgLat, avgLng), 5.0);
+  }
+
+  void _showLocationPopup(BuildContext context, String locationName, int jumpCount, double latitude, double longitude) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.location_on, color: Colors.red),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  locationName,
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (jumpCount > 1)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.paragliding, size: 20, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$jumpCount Sprünge',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.paragliding, size: 20, color: Colors.red),
+                      const SizedBox(width: 8),
+                      const Text(
+                        '1 Sprung',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const Divider(),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.my_location, size: 18, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Koordinaten:\n${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Schließen'),
+            ),
+            if (_selectedLocationFilter != locationName)
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _onLocationFilterChanged(locationName);
+                },
+                child: const Text('Filtern'),
+              ),
+          ],
+        );
+      },
+    );
   }
 
   void _onLocationFilterChanged(String? location) {
@@ -466,41 +564,60 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                       final count = loc['count'] as int? ?? 1;
                                       final lat = loc['latitude'] as num?;
                                       final lng = loc['longitude'] as num?;
+                                      final locationName = loc['location'] as String? ?? 'Unbekannt';
                                       if (lat == null || lng == null) {
                                         return null;
                                       }
+                                      final markerLocationName = locationName;
+                                      final markerCount = count;
+                                      final markerLat = lat.toDouble();
+                                      final markerLng = lng.toDouble();
+                                      
                                       return Marker(
-                                        point: LatLng(lat.toDouble(), lng.toDouble()),
-                                        width: count > 1 ? 50 : 40,
-                                        height: count > 1 ? 50 : 40,
-                                        child: Stack(
-                                          alignment: Alignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.paragliding,
-                                              color: Colors.red,
-                                              size: count > 1 ? 35 : 30,
-                                            ),
-                                            if (count > 1)
-                                              Positioned(
-                                                bottom: 0,
-                                                child: Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.red,
-                                                    borderRadius: BorderRadius.circular(10),
-                                                  ),
-                                                  child: Text(
-                                                    '$count',
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 10,
-                                                      fontWeight: FontWeight.bold,
+                                        point: LatLng(markerLat, markerLng),
+                                        width: markerCount > 1 ? 50 : 40,
+                                        height: markerCount > 1 ? 50 : 40,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            if (mounted) {
+                                              _showLocationPopup(
+                                                context,
+                                                markerLocationName,
+                                                markerCount,
+                                                markerLat,
+                                                markerLng,
+                                              );
+                                            }
+                                          },
+                                          child: Stack(
+                                            alignment: Alignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.paragliding,
+                                                color: Colors.red,
+                                                size: markerCount > 1 ? 35 : 30,
+                                              ),
+                                              if (markerCount > 1)
+                                                Positioned(
+                                                  bottom: 0,
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.red,
+                                                      borderRadius: BorderRadius.circular(10),
+                                                    ),
+                                                    child: Text(
+                                                      '$markerCount',
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
-                                              ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       );
                                     } catch (e) {
