@@ -32,15 +32,23 @@ def init_db():
                 conn = sqlite3.connect(db_path)
                 cursor = conn.cursor()
                 
-                # Check and add jump_method column if missing
+                # Check and add jump_type and jump_method columns if missing
                 cursor.execute("PRAGMA table_info(jumps)")
                 columns = [column[1] for column in cursor.fetchall()]
+                
+                if 'jump_type' not in columns:
+                    try:
+                        cursor.execute("ALTER TABLE jumps ADD COLUMN jump_type VARCHAR")
+                        conn.commit()
+                    except sqlite3.OperationalError as e:
+                        if "duplicate column" not in str(e).lower():
+                            raise
+                
                 if 'jump_method' not in columns:
                     try:
                         cursor.execute("ALTER TABLE jumps ADD COLUMN jump_method VARCHAR")
                         conn.commit()
                     except sqlite3.OperationalError as e:
-                        # Column might already exist, ignore
                         if "duplicate column" not in str(e).lower():
                             raise
                 

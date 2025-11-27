@@ -13,6 +13,7 @@ class Achievement {
   final String icon;
   final bool unlocked;
   final DateTime? unlockedAt;
+  final String? requirement; // What needs to be done to unlock
 
   Achievement({
     required this.type,
@@ -21,6 +22,7 @@ class Achievement {
     required this.icon,
     this.unlocked = false,
     this.unlockedAt,
+    this.requirement,
   });
 
   Achievement copyWith({
@@ -30,6 +32,7 @@ class Achievement {
     String? icon,
     bool? unlocked,
     DateTime? unlockedAt,
+    String? requirement,
   }) {
     return Achievement(
       type: type ?? this.type,
@@ -38,6 +41,7 @@ class Achievement {
       icon: icon ?? this.icon,
       unlocked: unlocked ?? this.unlocked,
       unlockedAt: unlockedAt ?? this.unlockedAt,
+      requirement: requirement ?? this.requirement,
     );
   }
 }

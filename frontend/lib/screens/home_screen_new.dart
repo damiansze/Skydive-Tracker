@@ -263,29 +263,92 @@ class HomeScreenNew extends ConsumerWidget {
       elevation: unlocked ? 4 : 1,
       color: unlocked ? null : Colors.grey[200],
       child: Opacity(
-        opacity: unlocked ? 1.0 : 0.5,
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                achievement.icon,
-                style: const TextStyle(fontSize: 32),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                achievement.title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: unlocked ? null : Colors.grey[600],
+        opacity: unlocked ? 1.0 : 0.7,
+        child: InkWell(
+          onTap: unlocked ? null : () {
+            // Show requirement info in a dialog
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Row(
+                  children: [
+                    Text(achievement.icon, style: const TextStyle(fontSize: 32)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        achievement.title,
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ],
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      achievement.description,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    if (achievement.requirement != null) ...[
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'So erreichst du es:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        achievement.requirement!,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Schließen'),
+                  ),
+                ],
               ),
-            ],
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  achievement.icon,
+                  style: const TextStyle(fontSize: 32),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  achievement.title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: unlocked ? null : Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (!unlocked && achievement.requirement != null) ...[
+                  const SizedBox(height: 4),
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

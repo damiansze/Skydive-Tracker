@@ -309,37 +309,26 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Fehler: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  ref.read(jumpNotifierProvider.notifier).refresh();
-                },
-                child: const Text('Erneut versuchen'),
-              ),
-            ],
+        error: (error, stack) => SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Fehler: $error'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.read(jumpNotifierProvider.notifier).refresh();
+                  },
+                  child: const Text('Erneut versuchen'),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddJumpScreen(),
-            ),
-          );
-          if (result == true) {
-            ref.read(jumpNotifierProvider.notifier).refresh();
-          }
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }
