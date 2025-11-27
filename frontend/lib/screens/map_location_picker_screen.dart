@@ -177,14 +177,9 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                     ),
                   ],
                 ),
-              // Zoom controls
+              // Attribution
               RichAttributionWidget(
                 alignment: AttributionAlignment.bottomRight,
-                popupInitialOpenMode: PopupInitialOpenMode.close,
-                popupFollowsPointer: false,
-                popupFollowsMapRotation: false,
-                popupOnHover: false,
-                animation: const AttributionAnimation.fade(),
                 attributions: [
                   TextSourceAttribution(
                     'OpenStreetMap contributors',
