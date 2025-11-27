@@ -1,5 +1,5 @@
 """Equipment database model"""
-from sqlalchemy import Column, String, DateTime, Enum
+from sqlalchemy import Column, String, Integer, DateTime, Enum
 from sqlalchemy.sql import func
 from app.db.database import Base
 import uuid
