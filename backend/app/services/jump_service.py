@@ -1,8 +1,10 @@
 """Jump service for business logic"""
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from typing import List, Optional
 from app.models.jump import Jump
 from app.models.equipment import Equipment
+from app.models.profile import Profile
 from app.schemas.jump import JumpCreate, JumpUpdate
 from app.core.logging_config import get_logger
 
@@ -55,6 +57,16 @@ class JumpService:
         db.refresh(jump)
         # Ensure equipment relationship is loaded
         _ = jump.equipment  # Trigger lazy load if needed
+        
+        # Update profile total jumps count
+        profile = db.query(Profile).first()
+        if profile:
+            total_jumps = db.query(func.count(Jump.id)).scalar() or 0
+            profile.total_jumps = total_jumps
+            db.commit()
+            db.refresh(profile)
+            logger.info("Profile total jumps updated", extra={"event": "profile_update_total_jumps", "total_jumps": total_jumps})
+        
         logger.info("Jump created successfully", extra={"event": "jump_create_success", "jump_id": jump.id})
         return jump
 
@@ -94,5 +106,15 @@ class JumpService:
             return False
         db.delete(jump)
         db.commit()
+        
+        # Update profile total jumps count
+        profile = db.query(Profile).first()
+        if profile:
+            total_jumps = db.query(func.count(Jump.id)).scalar() or 0
+            profile.total_jumps = total_jumps
+            db.commit()
+            db.refresh(profile)
+            logger.info("Profile total jumps updated", extra={"event": "profile_update_total_jumps", "total_jumps": total_jumps})
+        
         logger.info("Jump deleted successfully", extra={"event": "jump_delete_success", "jump_id": jump_id})
         return True

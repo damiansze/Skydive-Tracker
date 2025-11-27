@@ -183,8 +183,9 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Nach Ort filtern',
                       border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.filter_list),
+                      icon: Icon(Icons.filter_list),
                     ),
+                    isExpanded: true,
                     items: [
                       const DropdownMenuItem<String>(
                         value: null,
@@ -193,7 +194,10 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                       ...locations.map((location) {
                         return DropdownMenuItem<String>(
                           value: location,
-                          child: Text(location),
+                          child: Text(
+                            location,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         );
                       }),
                     ],
