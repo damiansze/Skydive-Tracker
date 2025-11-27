@@ -32,6 +32,23 @@ class StatisticsScreen extends ConsumerStatefulWidget {
 
 class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   String? _selectedLocationFilter;
+  final MapController _mapController = MapController();
+  
+  void _centerMapOnLocations(List<dynamic> locationsWithCoords) {
+    if (locationsWithCoords.isEmpty) return;
+    
+    final points = locationsWithCoords.map((loc) {
+      return LatLng(
+        loc['latitude'] as double,
+        loc['longitude'] as double,
+      );
+    }).toList();
+    
+    double avgLat = points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length;
+    double avgLng = points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length;
+    
+    _mapController.move(LatLng(avgLat, avgLng), 5.0);
+  }
 
   void _onLocationFilterChanged(String? location) {
     setState(() {
@@ -249,7 +266,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                           method == JumpMethod.PLANE 
                                               ? Icons.flight 
                                               : method == JumpMethod.HELICOPTER
-                                                  ? Icons.airplanemode_active
+                                                  ? Icons.flight_takeoff
                                                   : method == JumpMethod.BASE
                                                       ? Icons.landscape
                                                       : Icons.location_on,
@@ -291,39 +308,59 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                     
                     return Card(
                       margin: const EdgeInsets.all(16.0),
-                      child: SizedBox(
-                        height: 300,
-                        child: FlutterMap(
-                          options: MapOptions(
-                            initialCenter: LatLng(avgLat, avgLng),
-                            initialZoom: 5.0,
-                            minZoom: 3.0,
-                            maxZoom: 18.0,
+                      child: Stack(
+                        children: [
+                          SizedBox(
+                            height: 300,
+                            child: FlutterMap(
+                              mapController: _mapController,
+                              options: MapOptions(
+                                initialCenter: LatLng(avgLat, avgLng),
+                                initialZoom: 5.0,
+                                minZoom: 3.0,
+                                maxZoom: 18.0,
+                              ),
+                              children: [
+                                TileLayer(
+                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  userAgentPackageName: 'com.example.flutter_skydive_tracker',
+                                  maxZoom: 19,
+                                  errorTileCallback: (tile, error, stackTrace) {
+                                    // Handle tile loading errors gracefully
+                                  },
+                                ),
+                                MarkerLayer(
+                                  markers: locationsWithCoords.map((loc) {
+                                    return Marker(
+                                      point: LatLng(
+                                        loc['latitude'] as double,
+                                        loc['longitude'] as double,
+                                      ),
+                                      width: 40,
+                                      height: 40,
+                                      child: const Icon(
+                                        Icons.paragliding,
+                                        color: Colors.red,
+                                        size: 30,
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
                           ),
-                          children: [
-                            TileLayer(
-                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'com.example.flutter_skydive_tracker',
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: FloatingActionButton.small(
+                              onPressed: () {
+                                _centerMapOnLocations(locationsWithCoords);
+                              },
+                              tooltip: 'Karte zentrieren',
+                              child: const Icon(Icons.center_focus_strong),
                             ),
-                            MarkerLayer(
-                              markers: locationsWithCoords.map((loc) {
-                                return Marker(
-                                  point: LatLng(
-                                    loc['latitude'] as double,
-                                    loc['longitude'] as double,
-                                  ),
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(
-                                    Icons.paragliding,
-                                    color: Colors.red,
-                                    size: 30,
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     );
                   },

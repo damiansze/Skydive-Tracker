@@ -97,9 +97,11 @@ class HomeScreenNew extends ConsumerWidget {
                         : '${ApiConfig.baseUrl.replaceAll('/api/v1', '')}${profile.profilePictureUrl!}',
                   )
                 : null,
-            onBackgroundImageError: (exception, stackTrace) {
-                  // Handle image loading errors gracefully
-                },
+            onBackgroundImageError: profile.profilePictureUrl != null
+                ? (exception, stackTrace) {
+                    // Handle image loading errors gracefully
+                  }
+                : null,
             child: profile.profilePictureUrl == null
                 ? Icon(
                     Icons.person,
