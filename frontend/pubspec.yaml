@@ -48,7 +48,11 @@ dependencies:
   http: ^1.2.0
   
   # State Management
-  provider: ^6.1.1
+  flutter_riverpod: ^2.5.1
+  
+  # Database
+  sqflite: ^2.3.0
+  path: ^1.8.3
   
   # UUID
   uuid: ^4.3.3

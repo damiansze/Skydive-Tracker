@@ -1,56 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/jump.dart';
+import '../providers/jump_provider.dart';
 import '../services/jump_service.dart';
+import '../providers/database_provider.dart';
 import 'add_jump_screen.dart';
 
-class StatisticsScreen extends StatefulWidget {
+final distinctLocationsProvider = FutureProvider<List<String>>((ref) async {
+  final service = ref.read(jumpServiceProvider);
+  return await service.getDistinctLocations();
+});
+
+final totalJumpsProvider = Provider.family<Future<int>, String?>((ref, locationFilter) async {
+  final service = ref.read(jumpServiceProvider);
+  return await service.getTotalJumps(locationFilter: locationFilter);
+});
+
+class StatisticsScreen extends ConsumerStatefulWidget {
   const StatisticsScreen({super.key});
 
   @override
-  State<StatisticsScreen> createState() => _StatisticsScreenState();
+  ConsumerState<StatisticsScreen> createState() => _StatisticsScreenState();
 }
 
-class _StatisticsScreenState extends State<StatisticsScreen> {
-  final JumpService _jumpService = JumpService();
-  List<Jump> _jumps = [];
-  List<String> _locations = [];
+class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   String? _selectedLocationFilter;
-  bool _isLoading = true;
-  int _totalJumps = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final jumps = await _jumpService.getAllJumps(
-      locationFilter: _selectedLocationFilter,
-    );
-    final locations = await _jumpService.getDistinctLocations();
-    final totalJumps = await _jumpService.getTotalJumps(
-      locationFilter: _selectedLocationFilter,
-    );
-
-    setState(() {
-      _jumps = jumps;
-      _locations = locations;
-      _totalJumps = totalJumps;
-      _isLoading = false;
-    });
-  }
 
   void _onLocationFilterChanged(String? location) {
     setState(() {
       _selectedLocationFilter = location;
     });
-    _loadData();
+    ref.read(jumpNotifierProvider.notifier).setLocationFilter(location);
   }
 
   Future<void> _editJump(Jump jump) async {
@@ -61,7 +42,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       ),
     );
     if (result == true) {
-      _loadData();
+      ref.read(jumpNotifierProvider.notifier).refresh();
     }
   }
 
@@ -88,8 +69,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
     if (confirmed == true) {
       try {
-        await _jumpService.deleteJump(jump.id);
-        await _loadData();
+        await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Sprung gelöscht')),
@@ -107,37 +87,42 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final jumpsAsync = ref.watch(jumpNotifierProvider);
+    final locationsAsync = ref.watch(distinctLocationsProvider);
+    final totalJumpsAsync = ref.watch(totalJumpsProvider(_selectedLocationFilter));
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Statistik & Übersicht'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // Statistics Card
-                Card(
-                  margin: const EdgeInsets.all(16.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Statistiken',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+      body: jumpsAsync.when(
+        data: (jumps) {
+          return Column(
+            children: [
+              // Statistics Card
+              Card(
+                margin: const EdgeInsets.all(16.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Statistiken',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(height: 16),
-                        Row(
+                      ),
+                      const SizedBox(height: 16),
+                      totalJumpsAsync.when(
+                        data: (totalJumps) => Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             Column(
                               children: [
                                 Text(
-                                  '$_totalJumps',
+                                  '$totalJumps',
                                   style: const TextStyle(
                                     fontSize: 32,
                                     fontWeight: FontWeight.bold,
@@ -151,29 +136,49 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                                 ),
                               ],
                             ),
-                            Column(
-                              children: [
-                                Text(
-                                  '${_locations.length}',
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
+                            locationsAsync.when(
+                              data: (locations) => Column(
+                                children: [
+                                  Text(
+                                    '${locations.length}',
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                                const Text('Sprungplätze'),
-                              ],
+                                  const Text('Sprungplätze'),
+                                ],
+                              ),
+                              loading: () => const Column(
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 8),
+                                  Text('Sprungplätze'),
+                                ],
+                              ),
+                              error: (_, __) => const Column(
+                                children: [
+                                  Icon(Icons.error),
+                                  SizedBox(height: 8),
+                                  Text('Sprungplätze'),
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (_, __) => const Text('Fehler beim Laden'),
+                      ),
+                    ],
                   ),
                 ),
-                
-                // Filter
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: DropdownButtonFormField<String>(
+              ),
+              
+              // Filter
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: locationsAsync.when(
+                  data: (locations) => DropdownButtonFormField<String>(
                     value: _selectedLocationFilter,
                     decoration: const InputDecoration(
                       labelText: 'Nach Ort filtern',
@@ -185,7 +190,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                         value: null,
                         child: Text('Alle Orte'),
                       ),
-                      ..._locations.map((location) {
+                      ...locations.map((location) {
                         return DropdownMenuItem<String>(
                           value: location,
                           child: Text(location),
@@ -194,34 +199,41 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     ],
                     onChanged: _onLocationFilterChanged,
                   ),
+                  loading: () => const LinearProgressIndicator(),
+                  error: (_, __) => const Text('Fehler beim Laden der Orte'),
                 ),
-                const SizedBox(height: 16),
-                
-                // Jumps List
-                Expanded(
-                  child: _jumps.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.flight_takeoff,
-                                size: 64,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Noch keine Sprünge erfasst',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
+              ),
+              const SizedBox(height: 16),
+              
+              // Jumps List
+              Expanded(
+                child: jumps.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.flight_takeoff,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Noch keine Sprünge erfasst',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          ref.read(jumpNotifierProvider.notifier).refresh();
+                        },
+                        child: ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          itemCount: _jumps.length,
+                          itemCount: jumps.length,
                           itemBuilder: (context, index) {
-                            final jump = _jumps[index];
+                            final jump = jumps[index];
                             return Card(
                               margin: const EdgeInsets.symmetric(
                                 horizontal: 8.0,
@@ -287,17 +299,41 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             );
                           },
                         ),
-                ),
-              ],
-            ),
+                      ),
+              ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Fehler: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  ref.read(jumpNotifierProvider.notifier).refresh();
+                },
+                child: const Text('Erneut versuchen'),
+              ),
+            ],
+          ),
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const AddJumpScreen(),
             ),
-          ).then((_) => _loadData());
+          );
+          if (result == true) {
+            ref.read(jumpNotifierProvider.notifier).refresh();
+          }
         },
         child: const Icon(Icons.add),
       ),

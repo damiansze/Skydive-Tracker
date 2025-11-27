@@ -1,46 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/profile.dart';
-import '../services/profile_service.dart';
+import '../providers/profile_provider.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _licenseNumberController = TextEditingController();
   final _licenseTypeController = TextEditingController();
   
-  final ProfileService _profileService = ProfileService();
-  Profile? _profile;
-  bool _isLoading = true;
   bool _isEditing = false;
 
   @override
-  void initState() {
-    super.initState();
-    _loadProfile();
+  void dispose() {
+    _nameController.dispose();
+    _licenseNumberController.dispose();
+    _licenseTypeController.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadProfile() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final profile = await _profileService.getProfile();
-    setState(() {
-      _profile = profile;
-      if (profile != null) {
-        _nameController.text = profile.name;
-        _licenseNumberController.text = profile.licenseNumber ?? '';
-        _licenseTypeController.text = profile.licenseType ?? '';
-      }
-      _isLoading = false;
-    });
+  void _loadProfileData(Profile? profile) {
+    if (profile != null) {
+      _nameController.text = profile.name;
+      _licenseNumberController.text = profile.licenseNumber ?? '';
+      _licenseTypeController.text = profile.licenseType ?? '';
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -48,22 +39,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    try {
-      await _profileService.createOrUpdateProfile(
-        name: _nameController.text.trim(),
-        licenseNumber: _licenseNumberController.text.trim().isEmpty
-            ? null
-            : _licenseNumberController.text.trim(),
-        licenseType: _licenseTypeController.text.trim().isEmpty
-            ? null
-            : _licenseTypeController.text.trim(),
-      );
+    final existingProfile = ref.read(profileNotifierProvider).value;
+    final profile = Profile(
+      id: existingProfile?.id ?? '',
+      name: _nameController.text.trim(),
+      licenseNumber: _licenseNumberController.text.trim().isEmpty
+          ? null
+          : _licenseNumberController.text.trim(),
+      licenseType: _licenseTypeController.text.trim().isEmpty
+          ? null
+          : _licenseTypeController.text.trim(),
+      totalJumps: existingProfile?.totalJumps ?? 0,
+      createdAt: existingProfile?.createdAt ?? DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
 
+    try {
+      await ref.read(profileNotifierProvider.notifier).createOrUpdateProfile(profile);
       setState(() {
         _isEditing = false;
       });
-
-      await _loadProfile();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -80,142 +75,164 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _licenseNumberController.dispose();
-    _licenseTypeController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    final profileAsync = ref.watch(profileNotifierProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil'),
-        actions: [
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _saveProfile,
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
-            ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: [
-            // Profile Icon
-            Center(
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                child: Text(
-                  _profile?.name.isNotEmpty == true
-                      ? _profile!.name[0].toUpperCase()
-                      : '?',
-                  style: const TextStyle(fontSize: 40, color: Colors.white),
+    return profileAsync.when(
+      data: (profile) {
+        // Load data into controllers when profile changes
+        if (profile != null && !_isEditing) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _loadProfileData(profile);
+          });
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Profil'),
+            actions: [
+              if (_isEditing)
+                IconButton(
+                  icon: const Icon(Icons.save),
+                  onPressed: _saveProfile,
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () {
+                    setState(() {
+                      _isEditing = true;
+                    });
+                  },
                 ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // Name
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-              ),
-              enabled: _isEditing,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Bitte geben Sie einen Namen ein';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            
-            // License Number
-            TextFormField(
-              controller: _licenseNumberController,
-              decoration: const InputDecoration(
-                labelText: 'Lizenznummer',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.badge),
-              ),
-              enabled: _isEditing,
-            ),
-            const SizedBox(height: 16),
-            
-            // License Type
-            TextFormField(
-              controller: _licenseTypeController,
-              decoration: const InputDecoration(
-                labelText: 'Lizenztyp',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.card_membership),
-                hintText: 'z.B. A-Lizenz, B-Lizenz',
-              ),
-              enabled: _isEditing,
-            ),
-            const SizedBox(height: 24),
-            
-            // Statistics Card
-            if (_profile != null)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Statistiken',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+            ],
+          ),
+          body: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(16.0),
+              children: [
+                // Profile Icon
+                Center(
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    child: Text(
+                      profile?.name.isNotEmpty == true
+                          ? profile!.name[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(fontSize: 40, color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Name
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                  enabled: _isEditing,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Bitte geben Sie einen Namen ein';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // License Number
+                TextFormField(
+                  controller: _licenseNumberController,
+                  decoration: const InputDecoration(
+                    labelText: 'Lizenznummer',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.badge),
+                  ),
+                  enabled: _isEditing,
+                ),
+                const SizedBox(height: 16),
+                
+                // License Type
+                TextFormField(
+                  controller: _licenseTypeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Lizenztyp',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.card_membership),
+                    hintText: 'z.B. A-Lizenz, B-Lizenz',
+                  ),
+                  enabled: _isEditing,
+                ),
+                const SizedBox(height: 24),
+                
+                // Statistics Card
+                if (profile != null)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
+                          const Text(
+                            'Statistiken',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              Text(
-                                '${_profile!.totalJumps}',
-                                style: const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Column(
+                                children: [
+                                  Text(
+                                    '${profile.totalJumps}',
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Text('Gesamte Sprünge'),
+                                ],
                               ),
-                              const Text('Gesamte Sprünge'),
                             ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Scaffold(
+        appBar: AppBar(title: const Text('Profil')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Fehler: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  ref.read(profileNotifierProvider.notifier).refresh();
+                },
+                child: const Text('Erneut versuchen'),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

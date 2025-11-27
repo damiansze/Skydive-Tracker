@@ -4,8 +4,10 @@ import '../models/equipment.dart';
 import 'database_service.dart';
 
 class JumpService {
-  final DatabaseService _db = DatabaseService();
+  final DatabaseService _db;
   final _uuid = const Uuid();
+
+  JumpService(this._db);
 
   Future<String> createJump({
     required DateTime date,

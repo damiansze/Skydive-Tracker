@@ -1,40 +1,170 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/equipment.dart';
-import '../services/equipment_service.dart';
+import '../providers/equipment_provider.dart';
 import 'add_equipment_screen.dart';
 
-class EquipmentScreen extends StatefulWidget {
+class EquipmentScreen extends ConsumerWidget {
   const EquipmentScreen({super.key});
 
   @override
-  State<EquipmentScreen> createState() => _EquipmentScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final equipmentAsync = ref.watch(equipmentNotifierProvider);
 
-class _EquipmentScreenState extends State<EquipmentScreen> {
-  final EquipmentService _equipmentService = EquipmentService();
-  List<Equipment> _equipment = [];
-  bool _isLoading = true;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Equipment'),
+      ),
+      body: equipmentAsync.when(
+        data: (equipment) {
+          if (equipment.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.shopping_bag_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Noch kein Equipment vorhanden',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            );
+          }
 
-  @override
-  void initState() {
-    super.initState();
-    _loadEquipment();
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.read(equipmentNotifierProvider.notifier).refresh();
+            },
+            child: ListView.builder(
+              padding: const EdgeInsets.all(8.0),
+              itemCount: equipment.length,
+              itemBuilder: (context, index) {
+                final eq = equipment[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 4.0,
+                  ),
+                  child: ListTile(
+                    leading: Icon(_getEquipmentIcon(eq.type)),
+                    title: Text(eq.name),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Typ: ${eq.type.displayName}'),
+                        if (eq.manufacturer != null)
+                          Text('Hersteller: ${eq.manufacturer}'),
+                        if (eq.model != null) Text('Modell: ${eq.model}'),
+                        if (eq.serialNumber != null)
+                          Text('Seriennummer: ${eq.serialNumber}'),
+                        if (eq.purchaseDate != null)
+                          Text(
+                            'Kaufdatum: ${DateFormat('dd.MM.yyyy').format(eq.purchaseDate!)}',
+                          ),
+                      ],
+                    ),
+                    trailing: PopupMenuButton(
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit),
+                              SizedBox(width: 8),
+                              Text('Bearbeiten'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Löschen', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                      onSelected: (value) async {
+                        if (value == 'edit') {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddEquipmentScreen(
+                                equipment: eq,
+                              ),
+                            ),
+                          );
+                          ref.read(equipmentNotifierProvider.notifier).refresh();
+                        } else if (value == 'delete') {
+                          _deleteEquipment(context, ref, eq);
+                        }
+                      },
+                    ),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddEquipmentScreen(
+                            equipment: eq,
+                          ),
+                        ),
+                      );
+                      ref.read(equipmentNotifierProvider.notifier).refresh();
+                    },
+                  ),
+                );
+              },
+            ),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Fehler: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  ref.read(equipmentNotifierProvider.notifier).refresh();
+                },
+                child: const Text('Erneut versuchen'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AddEquipmentScreen(),
+            ),
+          );
+          ref.read(equipmentNotifierProvider.notifier).refresh();
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
   }
 
-  Future<void> _loadEquipment() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final equipment = await _equipmentService.getAllEquipment();
-    setState(() {
-      _equipment = equipment;
-      _isLoading = false;
-    });
-  }
-
-  Future<void> _deleteEquipment(Equipment equipment) async {
+  Future<void> _deleteEquipment(
+    BuildContext context,
+    WidgetRef ref,
+    Equipment equipment,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -55,142 +185,20 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
 
     if (confirmed == true) {
       try {
-        await _equipmentService.deleteEquipment(equipment.id);
-        await _loadEquipment();
-        if (mounted) {
+        await ref.read(equipmentNotifierProvider.notifier).deleteEquipment(equipment.id);
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Equipment gelöscht')),
           );
         }
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Fehler beim Löschen: $e')),
           );
         }
       }
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Equipment'),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _equipment.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Noch kein Equipment vorhanden',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: _equipment.length,
-                  itemBuilder: (context, index) {
-                    final equipment = _equipment[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 8.0,
-                        vertical: 4.0,
-                      ),
-                      child: ListTile(
-                        leading: Icon(_getEquipmentIcon(equipment.type)),
-                        title: Text(equipment.name),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Typ: ${equipment.type.displayName}'),
-                            if (equipment.manufacturer != null)
-                              Text('Hersteller: ${equipment.manufacturer}'),
-                            if (equipment.model != null)
-                              Text('Modell: ${equipment.model}'),
-                            if (equipment.serialNumber != null)
-                              Text('Seriennummer: ${equipment.serialNumber}'),
-                            if (equipment.purchaseDate != null)
-                              Text(
-                                'Kaufdatum: ${DateFormat('dd.MM.yyyy').format(equipment.purchaseDate!)}',
-                              ),
-                          ],
-                        ),
-                        trailing: PopupMenuButton(
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit),
-                                  SizedBox(width: 8),
-                                  Text('Bearbeiten'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Löschen', style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          ],
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AddEquipmentScreen(
-                                    equipment: equipment,
-                                  ),
-                                ),
-                              ).then((_) => _loadEquipment());
-                            } else if (value == 'delete') {
-                              _deleteEquipment(equipment);
-                            }
-                          },
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AddEquipmentScreen(
-                                equipment: equipment,
-                              ),
-                            ),
-                          ).then((_) => _loadEquipment());
-                        },
-                      ),
-                    );
-                  },
-                ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddEquipmentScreen(),
-            ),
-          ).then((_) => _loadEquipment());
-        },
-        child: const Icon(Icons.add),
-      ),
-    );
   }
 
   IconData _getEquipmentIcon(EquipmentType type) {

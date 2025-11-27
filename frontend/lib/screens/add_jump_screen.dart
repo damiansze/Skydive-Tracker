@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/jump.dart';
 import '../models/equipment.dart';
-import '../services/jump_service.dart';
-import '../services/equipment_service.dart';
+import '../providers/jump_provider.dart';
+import '../providers/equipment_provider.dart';
+import 'map_location_picker_screen.dart';
 
-class AddJumpScreen extends StatefulWidget {
+class AddJumpScreen extends ConsumerStatefulWidget {
   final Jump? jump; // For editing existing jumps
 
   const AddJumpScreen({super.key, this.jump});
 
   @override
-  State<AddJumpScreen> createState() => _AddJumpScreenState();
+  ConsumerState<AddJumpScreen> createState() => _AddJumpScreenState();
 }
 
-class _AddJumpScreenState extends State<AddJumpScreen> {
+class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _locationController = TextEditingController();
   final _altitudeController = TextEditingController();
@@ -27,20 +28,14 @@ class _AddJumpScreenState extends State<AddJumpScreen> {
   TimeOfDay _selectedTime = TimeOfDay.now();
   double? _latitude;
   double? _longitude;
-  LatLng? _mapCenter;
-  final MapController _mapController = MapController();
+  LatLng? _currentLocation;
   
-  List<Equipment> _allEquipment = [];
   Set<String> _selectedEquipmentIds = {};
   Map<String, bool> _checklistItems = {};
-
-  final JumpService _jumpService = JumpService();
-  final EquipmentService _equipmentService = EquipmentService();
 
   @override
   void initState() {
     super.initState();
-    _loadEquipment();
     if (widget.jump != null) {
       _loadJumpData();
     } else {
@@ -60,21 +55,7 @@ class _AddJumpScreenState extends State<AddJumpScreen> {
     _selectedEquipmentIds = jump.equipmentIds.toSet();
     
     if (_latitude != null && _longitude != null) {
-      _mapCenter = LatLng(_latitude!, _longitude!);
-    }
-  }
-
-  Future<void> _loadEquipment() async {
-    final equipment = await _equipmentService.getAllEquipment();
-    setState(() {
-      _allEquipment = equipment;
-      _initializeChecklist();
-    });
-  }
-
-  void _initializeChecklist() {
-    for (var equipment in _allEquipment) {
-      _checklistItems[equipment.id] = _selectedEquipmentIds.contains(equipment.id);
+      _currentLocation = LatLng(_latitude!, _longitude!);
     }
   }
 
@@ -101,8 +82,7 @@ class _AddJumpScreenState extends State<AddJumpScreen> {
       setState(() {
         _latitude = position.latitude;
         _longitude = position.longitude;
-        _mapCenter = LatLng(_latitude!, _longitude!);
-        _mapController.move(_mapCenter!, 13.0);
+        _currentLocation = LatLng(_latitude!, _longitude!);
       });
     } catch (e) {
       // Location not available
@@ -135,12 +115,23 @@ class _AddJumpScreenState extends State<AddJumpScreen> {
     }
   }
 
-  void _onMapTap(TapPosition tapPosition, LatLng point) {
-    setState(() {
-      _latitude = point.latitude;
-      _longitude = point.longitude;
-      _mapController.move(point, _mapController.camera.zoom);
-    });
+  Future<void> _openMapPicker() async {
+    final LatLng? result = await Navigator.of(context).push<LatLng>(
+      MaterialPageRoute(
+        builder: (context) => MapLocationPickerScreen(
+          initialLocation: _currentLocation,
+          currentLocation: _currentLocation,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _latitude = result.latitude;
+        _longitude = result.longitude;
+        _currentLocation = result;
+      });
+    }
   }
 
   void _toggleEquipment(String equipmentId) {
@@ -169,6 +160,8 @@ class _AddJumpScreenState extends State<AddJumpScreen> {
     );
 
     try {
+      final jumpNotifier = ref.read(jumpNotifierProvider.notifier);
+      
       if (widget.jump != null) {
         final updatedJump = widget.jump!.copyWith(
           date: dateTime,
@@ -180,9 +173,9 @@ class _AddJumpScreenState extends State<AddJumpScreen> {
           checklistCompleted: _checklistItems.values.every((v) => v),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         );
-        await _jumpService.updateJump(updatedJump);
+        await jumpNotifier.updateJump(updatedJump);
       } else {
-        await _jumpService.createJump(
+        await jumpNotifier.createJump(
           date: dateTime,
           location: _locationController.text.trim(),
           latitude: _latitude,
@@ -216,13 +209,7 @@ class _AddJumpScreenState extends State<AddJumpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dateTime = DateTime(
-      _selectedDate.year,
-      _selectedDate.month,
-      _selectedDate.day,
-      _selectedTime.hour,
-      _selectedTime.minute,
-    );
+    final equipmentAsync = ref.watch(equipmentListProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -272,55 +259,49 @@ class _AddJumpScreenState extends State<AddJumpScreen> {
             ),
             const SizedBox(height: 16),
             
-            // Map
-            if (_mapCenter != null)
-              SizedBox(
-                height: 300,
-                child: Card(
-                  child: Column(
+            // Map Selection Button
+            Card(
+              child: InkWell(
+                onTap: _openMapPicker,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text(
-                          'Position auf Karte auswählen',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
+                      const Icon(Icons.map, size: 32),
+                      const SizedBox(width: 16),
                       Expanded(
-                        child: FlutterMap(
-                          mapController: _mapController,
-                          options: MapOptions(
-                            initialCenter: _mapCenter!,
-                            initialZoom: 13.0,
-                            onTap: _onMapTap,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            TileLayer(
-                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'com.example.flutter_skydive_tracker',
+                            const Text(
+                              'Position auf Karte auswählen',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
+                            const SizedBox(height: 4),
                             if (_latitude != null && _longitude != null)
-                              MarkerLayer(
-                                markers: [
-                                  Marker(
-                                    point: LatLng(_latitude!, _longitude!),
-                                    width: 40,
-                                    height: 40,
-                                    child: const Icon(
-                                      Icons.location_on,
-                                      color: Colors.red,
-                                      size: 40,
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              )
+                            else
+                              Text(
+                                'Keine Position ausgewählt',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey,
+                                ),
                               ),
                           ],
                         ),
                       ),
+                      const Icon(Icons.chevron_right),
                     ],
                   ),
                 ),
               ),
+            ),
             const SizedBox(height: 16),
             
             // Altitude
@@ -345,22 +326,46 @@ class _AddJumpScreenState extends State<AddJumpScreen> {
             const SizedBox(height: 16),
             
             // Equipment Checklist
-            if (_allEquipment.isNotEmpty) ...[
-              const Text(
-                'Equipment Checkliste',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              ..._allEquipment.map((equipment) {
-                return CheckboxListTile(
-                  title: Text(equipment.name),
-                  subtitle: Text('${equipment.type.displayName}${equipment.manufacturer != null ? ' - ${equipment.manufacturer}' : ''}'),
-                  value: _checklistItems[equipment.id] ?? false,
-                  onChanged: (value) => _toggleEquipment(equipment.id),
+            equipmentAsync.when(
+              data: (equipment) {
+                if (equipment.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+
+                // Initialize checklist items if not already done
+                if (_checklistItems.isEmpty) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    setState(() {
+                      for (var eq in equipment) {
+                        _checklistItems[eq.id] = _selectedEquipmentIds.contains(eq.id);
+                      }
+                    });
+                  });
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Equipment Checkliste',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    ...equipment.map((eq) {
+                      return CheckboxListTile(
+                        title: Text(eq.name),
+                        subtitle: Text('${eq.type.displayName}${eq.manufacturer != null ? ' - ${eq.manufacturer}' : ''}'),
+                        value: _checklistItems[eq.id] ?? false,
+                        onChanged: (value) => _toggleEquipment(eq.id),
+                      );
+                    }),
+                    const SizedBox(height: 16),
+                  ],
                 );
-              }),
-              const SizedBox(height: 16),
-            ],
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Text('Fehler beim Laden: $error'),
+            ),
             
             // Notes
             TextFormField(

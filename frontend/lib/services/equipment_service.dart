@@ -3,7 +3,9 @@ import '../models/equipment.dart';
 import 'database_service.dart';
 
 class EquipmentService {
-  final DatabaseService _db = DatabaseService();
+  final DatabaseService _db;
+
+  EquipmentService(this._db);
   final _uuid = const Uuid();
 
   Future<String> createEquipment({

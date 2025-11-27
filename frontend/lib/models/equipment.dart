@@ -7,6 +7,7 @@ class Equipment {
   final String? serialNumber;
   final DateTime? purchaseDate;
   final String? notes;
+  final DateTime? createdAt;
 
   Equipment({
     required this.id,
@@ -17,6 +18,7 @@ class Equipment {
     this.serialNumber,
     this.purchaseDate,
     this.notes,
+    this.createdAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,6 +31,7 @@ class Equipment {
       'serial_number': serialNumber,
       'purchase_date': purchaseDate?.toIso8601String(),
       'notes': notes,
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 
@@ -47,6 +50,9 @@ class Equipment {
           ? DateTime.parse(map['purchase_date'] as String)
           : null,
       notes: map['notes'] as String?,
+      createdAt: map['created_at'] != null
+          ? DateTime.parse(map['created_at'] as String)
+          : null,
     );
   }
 
@@ -59,6 +65,7 @@ class Equipment {
     String? serialNumber,
     DateTime? purchaseDate,
     String? notes,
+    DateTime? createdAt,
   }) {
     return Equipment(
       id: id ?? this.id,
@@ -69,6 +76,7 @@ class Equipment {
       serialNumber: serialNumber ?? this.serialNumber,
       purchaseDate: purchaseDate ?? this.purchaseDate,
       notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }
