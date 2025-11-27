@@ -24,6 +24,7 @@ class Equipment(Base):
     model = Column(String, nullable=True)
     serial_number = Column(String, nullable=True)
     purchase_date = Column(DateTime(timezone=True), nullable=True)
+    deactivation_date = Column(DateTime(timezone=True), nullable=True)  # Date when equipment was deactivated
     reminder_after_jumps = Column(Integer, nullable=True)  # For reserve parachute: remind after X jumps
     notes = Column(String, nullable=True)
     is_active = Column(Integer, default=1, nullable=False)  # 1 = active, 0 = inactive

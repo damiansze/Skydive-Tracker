@@ -72,6 +72,15 @@ def init_db():
                         if "duplicate column" not in str(e).lower():
                             raise
                 
+                # Check and add deactivation_date column if missing
+                if 'deactivation_date' not in columns:
+                    try:
+                        cursor.execute("ALTER TABLE equipment ADD COLUMN deactivation_date DATETIME")
+                        conn.commit()
+                    except sqlite3.OperationalError as e:
+                        if "duplicate column" not in str(e).lower():
+                            raise
+                
                 # Check and add profile_picture_url column if missing
                 cursor.execute("PRAGMA table_info(profiles)")
                 columns = [column[1] for column in cursor.fetchall()]

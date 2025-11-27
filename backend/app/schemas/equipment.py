@@ -11,6 +11,7 @@ class EquipmentBase(BaseModel):
     model: Optional[str] = None
     serial_number: Optional[str] = None
     purchase_date: Optional[datetime] = None
+    deactivation_date: Optional[datetime] = None  # Date when equipment was deactivated
     reminder_after_jumps: Optional[int] = Field(None, ge=0)  # For reserve: remind after X jumps
     notes: Optional[str] = None
     is_active: Optional[int] = Field(1, ge=0, le=1)  # 1 = active, 0 = inactive
@@ -25,6 +26,7 @@ class EquipmentUpdate(BaseModel):
     model: Optional[str] = None
     serial_number: Optional[str] = None
     purchase_date: Optional[datetime] = None
+    deactivation_date: Optional[datetime] = None  # Date when equipment was deactivated
     reminder_after_jumps: Optional[int] = Field(None, ge=0)
     notes: Optional[str] = None
     is_active: Optional[int] = Field(None, ge=0, le=1)

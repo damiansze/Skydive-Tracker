@@ -71,18 +71,27 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       _selectedLocationFilter = location;
     });
     ref.read(jumpNotifierProvider.notifier).setLocationFilter(location);
+    // Invalidate providers to refresh statistics
+    ref.invalidate(totalJumpsProvider);
+    ref.invalidate(statisticsSummaryProvider);
   }
   
   void _onJumpTypeFilterChanged(JumpType? type) {
     setState(() {
       _selectedJumpTypeFilter = _selectedJumpTypeFilter == type ? null : type;
     });
+    // Invalidate providers to refresh statistics
+    ref.invalidate(totalJumpsProvider);
+    ref.invalidate(statisticsSummaryProvider);
   }
   
   void _onJumpMethodFilterChanged(JumpMethod? method) {
     setState(() {
       _selectedJumpMethodFilter = _selectedJumpMethodFilter == method ? null : method;
     });
+    // Invalidate providers to refresh statistics
+    ref.invalidate(totalJumpsProvider);
+    ref.invalidate(statisticsSummaryProvider);
   }
 
   Future<void> _editJump(Jump jump) async {

@@ -38,6 +38,15 @@ def migrate_database():
         else:
             print("✓ reminder_after_jumps column already exists")
         
+        # Check if deactivation_date column exists in equipment table
+        if 'deactivation_date' not in columns:
+            print("Adding deactivation_date column to equipment table...")
+            cursor.execute("ALTER TABLE equipment ADD COLUMN deactivation_date DATETIME")
+            conn.commit()
+            print("✓ Added deactivation_date column")
+        else:
+            print("✓ deactivation_date column already exists")
+        
         # Check if profile_picture_url column exists in profiles table
         cursor.execute("PRAGMA table_info(profiles)")
         columns = [column[1] for column in cursor.fetchall()]

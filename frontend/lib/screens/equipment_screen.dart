@@ -40,6 +40,11 @@ class EquipmentScreen extends ConsumerWidget {
               Text(
                 'Kaufdatum: ${DateFormat('dd.MM.yyyy').format(eq.purchaseDate!)}',
               ),
+            if (eq.deactivationDate != null)
+              Text(
+                'Deaktiviert am: ${DateFormat('dd.MM.yyyy').format(eq.deactivationDate!)}',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
           ],
         ),
         trailing: PopupMenuButton(
@@ -221,7 +226,12 @@ class EquipmentScreen extends ConsumerWidget {
     Equipment equipment,
   ) async {
     try {
-      final updatedEquipment = equipment.copyWith(isActive: !equipment.isActive);
+      // When deactivating, set deactivation_date to now
+      // When activating, clear deactivation_date
+      final updatedEquipment = equipment.copyWith(
+        isActive: !equipment.isActive,
+        deactivationDate: equipment.isActive ? DateTime.now() : null,
+      );
       await ref.read(equipmentNotifierProvider.notifier).updateEquipment(updatedEquipment);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -287,19 +297,19 @@ class EquipmentScreen extends ConsumerWidget {
   IconData _getEquipmentIcon(EquipmentType type) {
     switch (type) {
       case EquipmentType.PARACHUTE:
-        return Icons.airplanemode_active;
+        return Icons.paragliding;  // Better icon for parachute
       case EquipmentType.HARNESS:
-        return Icons.safety_divider;
+        return Icons.safety_check;  // Better icon for harness/safety equipment
       case EquipmentType.RESERVE:
-        return Icons.emergency;
+        return Icons.emergency_share;  // Better icon for reserve parachute
       case EquipmentType.ALTIMETER:
-        return Icons.speed;
+        return Icons.speed;  // Good icon for altimeter
       case EquipmentType.HELMET:
-        return Icons.sports_motorsports;
+        return Icons.sports_motorsports;  // Good icon for helmet
       case EquipmentType.GOGGLES:
-        return Icons.visibility;
+        return Icons.visibility;  // Good icon for goggles
       case EquipmentType.OTHER:
-        return Icons.inventory_2;
+        return Icons.inventory_2;  // Good icon for other equipment
     }
   }
 }

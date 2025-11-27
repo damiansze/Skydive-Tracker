@@ -6,6 +6,7 @@ class Equipment {
   final String? model;
   final String? serialNumber;
   final DateTime? purchaseDate;
+  final DateTime? deactivationDate;  // Date when equipment was deactivated
   final int? reminderAfterJumps;  // For reserve: remind after X jumps
   final String? notes;
   final bool isActive;  // true = active, false = inactive
@@ -19,6 +20,7 @@ class Equipment {
     this.model,
     this.serialNumber,
     this.purchaseDate,
+    this.deactivationDate,
     this.reminderAfterJumps,
     this.notes,
     this.isActive = true,
@@ -36,6 +38,7 @@ class Equipment {
       'model': model,
       'serial_number': serialNumber,
       'purchase_date': purchaseDate?.toIso8601String(),
+      'deactivation_date': deactivationDate?.toIso8601String(),
       'reminder_after_jumps': reminderAfterJumps,
       'notes': notes,
       'is_active': isActive ? 1 : 0,
@@ -77,6 +80,9 @@ class Equipment {
       purchaseDate: map['purchase_date'] != null
           ? DateTime.parse(map['purchase_date'] as String)
           : null,
+      deactivationDate: map['deactivation_date'] != null
+          ? DateTime.parse(map['deactivation_date'] as String)
+          : null,
       reminderAfterJumps: map['reminder_after_jumps'] as int?,
       notes: map['notes'] as String?,
       isActive: map['is_active'] != null ? (map['is_active'] as int) == 1 : true,
@@ -94,6 +100,7 @@ class Equipment {
     String? model,
     String? serialNumber,
     DateTime? purchaseDate,
+    DateTime? deactivationDate,
     int? reminderAfterJumps,
     String? notes,
     bool? isActive,
@@ -107,6 +114,7 @@ class Equipment {
       model: model ?? this.model,
       serialNumber: serialNumber ?? this.serialNumber,
       purchaseDate: purchaseDate ?? this.purchaseDate,
+      deactivationDate: deactivationDate ?? this.deactivationDate,
       reminderAfterJumps: reminderAfterJumps ?? this.reminderAfterJumps,
       notes: notes ?? this.notes,
       isActive: isActive ?? this.isActive,

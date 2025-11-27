@@ -548,10 +548,35 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
               // Equipment Übersicht
               equipmentAsync.when(
                 data: (equipment) {
-                  // Filter only active equipment
-                  final activeEquipment = equipment.where((eq) => eq.isActive).toList();
+                  // Combine date and time for jump date
+                  final jumpDateTime = DateTime(
+                    _selectedDate.year,
+                    _selectedDate.month,
+                    _selectedDate.day,
+                    _selectedTime.hour,
+                    _selectedTime.minute,
+                  );
                   
-                  if (activeEquipment.isEmpty) {
+                  // Filter equipment available at jump date
+                  // Equipment is available if:
+                  // 1. It was purchased before or on jump date (or has no purchase date)
+                  // 2. It was not deactivated before or on jump date (or has no deactivation date)
+                  // 3. Include equipment that was already selected for this jump (for editing)
+                  final availableEquipment = equipment.where((eq) {
+                    // Check if equipment was purchased before or on jump date
+                    final wasPurchased = eq.purchaseDate == null || 
+                                       eq.purchaseDate!.isBefore(jumpDateTime) || 
+                                       eq.purchaseDate!.isAtSameMomentAs(jumpDateTime);
+                    
+                    // Check if equipment was not deactivated before or on jump date
+                    final wasNotDeactivated = eq.deactivationDate == null || 
+                                             eq.deactivationDate!.isAfter(jumpDateTime);
+                    
+                    // Include if available at jump date OR if already selected for this jump
+                    return (wasPurchased && wasNotDeactivated) || _selectedEquipmentIds.contains(eq.id);
+                  }).toList();
+                  
+                  if (availableEquipment.isEmpty) {
                     return const SizedBox.shrink();
                   }
 
@@ -559,7 +584,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                   if (_checklistItems.isEmpty) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       setState(() {
-                        for (var eq in activeEquipment) {
+                        for (var eq in availableEquipment) {
                           _checklistItems[eq.id] = _selectedEquipmentIds.contains(eq.id);
                         }
                       });
@@ -574,12 +599,35 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-                      ...activeEquipment.map((eq) {
+                      ...availableEquipment.map((eq) {
+                        // Check if equipment was available at jump date
+                        final wasPurchased = eq.purchaseDate == null || 
+                                           eq.purchaseDate!.isBefore(jumpDateTime) || 
+                                           eq.purchaseDate!.isAtSameMomentAs(jumpDateTime);
+                        final wasNotDeactivated = eq.deactivationDate == null || 
+                                                 eq.deactivationDate!.isAfter(jumpDateTime);
+                        final isAvailableAtJumpDate = wasPurchased && wasNotDeactivated;
+                        
                         return CheckboxListTile(
                           title: Text(eq.name),
-                          subtitle: Text('${eq.type.displayName}${eq.manufacturer != null ? ' - ${eq.manufacturer}' : ''}'),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${eq.type.displayName}${eq.manufacturer != null ? ' - ${eq.manufacturer}' : ''}'),
+                              if (!isAvailableAtJumpDate)
+                                Text(
+                                  '(Nicht verfügbar zum Sprungzeitpunkt)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange[700],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                            ],
+                          ),
                           value: _checklistItems[eq.id] ?? false,
                           onChanged: (value) => _toggleEquipment(eq.id),
+                          enabled: isAvailableAtJumpDate || _selectedEquipmentIds.contains(eq.id),
                         );
                       }),
                       const SizedBox(height: 16),
