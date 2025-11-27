@@ -7,6 +7,7 @@ import '../models/jump.dart';
 import '../models/equipment.dart';
 import '../providers/jump_provider.dart';
 import '../providers/equipment_provider.dart';
+import '../services/geocoding_service.dart';
 import 'map_location_picker_screen.dart';
 
 class AddJumpScreen extends ConsumerStatefulWidget {
@@ -32,6 +33,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   
   Set<String> _selectedEquipmentIds = {};
   Map<String, bool> _checklistItems = {};
+  bool _isGeocoding = false;
 
   @override
   void initState() {
@@ -41,6 +43,9 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     } else {
       _getCurrentLocation();
     }
+    
+    // Listen to location field changes for geocoding
+    _locationController.addListener(_onLocationChanged);
   }
 
   void _loadJumpData() {
@@ -84,8 +89,51 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
         _longitude = position.longitude;
         _currentLocation = LatLng(_latitude!, _longitude!);
       });
+      
+      // Get address for current location
+      final address = await GeocodingService.getAddressFromCoordinates(_currentLocation!);
+      if (address != null && mounted) {
+        _locationController.text = address;
+      }
     } catch (e) {
       // Location not available
+    }
+  }
+
+  Future<void> _onLocationChanged() async {
+    // Debounce geocoding to avoid too many API calls
+    if (_isGeocoding) return;
+    
+    final locationText = _locationController.text.trim();
+    if (locationText.length < 3) return; // Wait for at least 3 characters
+    
+    // Wait a bit before geocoding
+    await Future.delayed(const Duration(milliseconds: 800));
+    
+    // Check if text hasn't changed during delay
+    if (_locationController.text.trim() != locationText) return;
+    
+    setState(() {
+      _isGeocoding = true;
+    });
+    
+    try {
+      final coordinates = await GeocodingService.getCoordinatesFromAddress(locationText);
+      if (coordinates != null && mounted) {
+        setState(() {
+          _latitude = coordinates.latitude;
+          _longitude = coordinates.longitude;
+          _currentLocation = coordinates;
+        });
+      }
+    } catch (e) {
+      // Geocoding failed, ignore
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeocoding = false;
+        });
+      }
     }
   }
 
@@ -131,6 +179,12 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
         _longitude = result.longitude;
         _currentLocation = result;
       });
+      
+      // Get address for selected location
+      final address = await GeocodingService.getAddressFromCoordinates(result);
+      if (address != null && mounted) {
+        _locationController.text = address;
+      }
     }
   }
 
@@ -201,6 +255,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
 
   @override
   void dispose() {
+    _locationController.removeListener(_onLocationChanged);
     _locationController.dispose();
     _altitudeController.dispose();
     _notesController.dispose();
@@ -217,177 +272,189 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: ListView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
-          children: [
-            // Date/Time Selection
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.calendar_today),
-                title: const Text('Datum'),
-                subtitle: Text(DateFormat('dd.MM.yyyy').format(_selectedDate)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: _selectDate,
+          child: Column(
+            children: [
+              // Date/Time Selection
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.calendar_today),
+                  title: const Text('Datum'),
+                  subtitle: Text(DateFormat('dd.MM.yyyy').format(_selectedDate)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _selectDate,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.access_time),
-                title: const Text('Uhrzeit'),
-                subtitle: Text(_selectedTime.format(context)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: _selectTime,
+              const SizedBox(height: 8),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.access_time),
+                  title: const Text('Uhrzeit'),
+                  subtitle: Text(_selectedTime.format(context)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _selectTime,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Location
-            TextFormField(
-              controller: _locationController,
-              decoration: const InputDecoration(
-                labelText: 'Ort *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on),
+              const SizedBox(height: 16),
+              
+              // Location
+              TextFormField(
+                controller: _locationController,
+                decoration: InputDecoration(
+                  labelText: 'Ort *',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.location_on),
+                  suffixIcon: _isGeocoding
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Bitte geben Sie einen Ort ein';
+                  }
+                  return null;
+                },
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Bitte geben Sie einen Ort ein';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            
-            // Map Selection Button
-            Card(
-              child: InkWell(
-                onTap: _openMapPicker,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.map, size: 32),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Position auf Karte auswählen',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            if (_latitude != null && _longitude != null)
-                              Text(
-                                '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              )
-                            else
-                              Text(
-                                'Keine Position ausgewählt',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey,
+              const SizedBox(height: 16),
+              
+              // Map Selection Button
+              Card(
+                child: InkWell(
+                  onTap: _openMapPicker,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.map, size: 32),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Position auf Karte auswählen',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
                               ),
-                          ],
+                              const SizedBox(height: 4),
+                              if (_latitude != null && _longitude != null)
+                                Text(
+                                  '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                )
+                              else
+                                Text(
+                                  'Keine Position ausgewählt',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const Icon(Icons.chevron_right),
-                    ],
+                        const Icon(Icons.chevron_right),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Altitude
-            TextFormField(
-              controller: _altitudeController,
-              decoration: const InputDecoration(
-                labelText: 'Höhe (ft) *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.height),
+              const SizedBox(height: 16),
+              
+              // Altitude
+              TextFormField(
+                controller: _altitudeController,
+                decoration: const InputDecoration(
+                  labelText: 'Höhe (m) *',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.height),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Bitte geben Sie eine Höhe ein';
+                  }
+                  if (int.tryParse(value) == null || int.parse(value) <= 0) {
+                    return 'Bitte geben Sie eine gültige Höhe ein';
+                  }
+                  return null;
+                },
               ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Bitte geben Sie eine Höhe ein';
-                }
-                if (int.tryParse(value) == null || int.parse(value) <= 0) {
-                  return 'Bitte geben Sie eine gültige Höhe ein';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            
-            // Equipment Checklist
-            equipmentAsync.when(
-              data: (equipment) {
-                if (equipment.isEmpty) {
-                  return const SizedBox.shrink();
-                }
+              const SizedBox(height: 16),
+              
+              // Equipment Checklist
+              equipmentAsync.when(
+                data: (equipment) {
+                  if (equipment.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
 
-                // Initialize checklist items if not already done
-                if (_checklistItems.isEmpty) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    setState(() {
-                      for (var eq in equipment) {
-                        _checklistItems[eq.id] = _selectedEquipmentIds.contains(eq.id);
-                      }
+                  // Initialize checklist items if not already done
+                  if (_checklistItems.isEmpty) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      setState(() {
+                        for (var eq in equipment) {
+                          _checklistItems[eq.id] = _selectedEquipmentIds.contains(eq.id);
+                        }
+                      });
                     });
-                  });
-                }
+                  }
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Equipment Checkliste',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    ...equipment.map((eq) {
-                      return CheckboxListTile(
-                        title: Text(eq.name),
-                        subtitle: Text('${eq.type.displayName}${eq.manufacturer != null ? ' - ${eq.manufacturer}' : ''}'),
-                        value: _checklistItems[eq.id] ?? false,
-                        onChanged: (value) => _toggleEquipment(eq.id),
-                      );
-                    }),
-                    const SizedBox(height: 16),
-                  ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Text('Fehler beim Laden: $error'),
-            ),
-            
-            // Notes
-            TextFormField(
-              controller: _notesController,
-              decoration: const InputDecoration(
-                labelText: 'Notizen',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.note),
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Equipment Checkliste',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      ...equipment.map((eq) {
+                        return CheckboxListTile(
+                          title: Text(eq.name),
+                          subtitle: Text('${eq.type.displayName}${eq.manufacturer != null ? ' - ${eq.manufacturer}' : ''}'),
+                          value: _checklistItems[eq.id] ?? false,
+                          onChanged: (value) => _toggleEquipment(eq.id),
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => Text('Fehler beim Laden: $error'),
               ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 24),
-            
-            // Save Button
-            ElevatedButton(
-              onPressed: _saveJump,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+              
+              // Notes
+              TextFormField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notizen',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.note),
+                ),
+                maxLines: 3,
               ),
-              child: Text(widget.jump != null ? 'Änderungen speichern' : 'Sprung speichern'),
-            ),
-          ],
+              const SizedBox(height: 24),
+              
+              // Save Button
+              ElevatedButton(
+                onPressed: _saveJump,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: Text(widget.jump != null ? 'Änderungen speichern' : 'Sprung speichern'),
+              ),
+            ],
+          ),
         ),
       ),
     );

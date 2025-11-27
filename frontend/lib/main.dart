@@ -23,6 +23,16 @@ class MyApp extends StatelessWidget {
       ),
       home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
+      // Ensure keyboard doesn't block content
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            // Ensure text scales properly
+            textScaler: MediaQuery.of(context).textScaler.clamp(minScaleFactor: 0.8, maxScaleFactor: 1.2),
+          ),
+          child: child!,
+        );
+      },
     );
   }
 }

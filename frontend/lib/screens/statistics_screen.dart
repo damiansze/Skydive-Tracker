@@ -249,7 +249,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                       DateFormat('dd.MM.yyyy HH:mm')
                                           .format(jump.date),
                                     ),
-                                    Text('Höhe: ${jump.altitude} ft'),
+                                    Text('Höhe: ${jump.altitude} m'),
                                     if (jump.checklistCompleted)
                                       const Row(
                                         children: [

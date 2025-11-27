@@ -138,6 +138,8 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
             options: MapOptions(
               initialCenter: initialCenter,
               initialZoom: 13.0,
+              minZoom: 3.0,
+              maxZoom: 18.0,
               onTap: _onMapTap,
             ),
             children: [
@@ -175,7 +177,52 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                     ),
                   ],
                 ),
+              // Zoom controls
+              RichAttributionWidget(
+                alignment: AttributionAlignment.bottomRight,
+                popupInitialOpenMode: PopupInitialOpenMode.close,
+                popupFollowsPointer: false,
+                popupFollowsMapRotation: false,
+                popupOnHover: false,
+                animation: const AttributionAnimation.fade(),
+                attributions: [
+                  TextSourceAttribution(
+                    'OpenStreetMap contributors',
+                    onTap: null,
+                  ),
+                ],
+              ),
             ],
+          ),
+          // Zoom controls
+          Positioned(
+            top: 16,
+            right: 16,
+            child: Column(
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'zoom_in',
+                  onPressed: () {
+                    _mapController.move(
+                      _mapController.camera.center,
+                      _mapController.camera.zoom + 1,
+                    );
+                  },
+                  child: const Icon(Icons.add),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton.small(
+                  heroTag: 'zoom_out',
+                  onPressed: () {
+                    _mapController.move(
+                      _mapController.camera.center,
+                      _mapController.camera.zoom - 1,
+                    );
+                  },
+                  child: const Icon(Icons.remove),
+                ),
+              ],
+            ),
           ),
           if (_isLoadingLocation)
             const Center(
