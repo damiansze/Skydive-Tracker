@@ -45,15 +45,20 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   FreefallStats? _freefallStats;
   bool _isEditingMode = false; // For existing jumps: start in preview mode
 
+  bool _isInitializing = true; // Track if we're still initializing
+  
   @override
   void initState() {
     super.initState();
     if (widget.jump != null) {
       _loadJumpData();
       _isEditingMode = false; // Start in preview mode for existing jumps
+      _isInitializing = false;
     } else {
-      _getCurrentLocation();
       _isEditingMode = true; // Always editable for new jumps
+      // Don't auto-fetch location on init - let user choose when to use current location
+      // This prevents overwriting user input
+      _isInitializing = false;
     }
     
     // Listen to location field changes for geocoding
@@ -87,6 +92,13 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
+    // Only update location if user is not actively typing
+    // This prevents overwriting user input
+    if (!_isEditingMode || _locationController.text.trim().isNotEmpty) {
+      // Don't overwrite if user has already entered something
+      return;
+    }
+    
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -112,10 +124,16 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
         _currentLocation = LatLng(_latitude!, _longitude!);
       });
       
-      // Get address for current location
-      final address = await GeocodingService.getAddressFromCoordinates(_currentLocation!);
-      if (address != null && mounted) {
-        _locationController.text = address;
+      // Only set address if field is still empty (user hasn't typed)
+      // This prevents overwriting user input
+      if (mounted && _locationController.text.trim().isEmpty) {
+        final address = await GeocodingService.getAddressFromCoordinates(_currentLocation!);
+        // Filter out Google Maps default address
+        if (address != null && 
+            !address.toLowerCase().contains('amphitheatre') &&
+            !address.toLowerCase().contains('mountain view')) {
+          _locationController.text = address;
+        }
       }
     } catch (e) {
       // Location not available
@@ -248,7 +266,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
       ),
     );
 
-    if (result != null) {
+    if (result != null && mounted) {
       setState(() {
         _latitude = result.latitude;
         _longitude = result.longitude;
@@ -256,9 +274,13 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
       });
       
       // Get address for selected location
+      // Only update if user explicitly selected a location from map
       final address = await GeocodingService.getAddressFromCoordinates(result);
       if (address != null && mounted) {
-        _locationController.text = address;
+        // User explicitly selected a location, so it's safe to update
+        setState(() {
+          _locationController.text = address;
+        });
       }
     }
   }

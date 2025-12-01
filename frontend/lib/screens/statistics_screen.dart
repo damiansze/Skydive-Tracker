@@ -551,16 +551,23 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         
         final isLastFilteredJump = filteredJumps.length == 1 && filteredJumps.first.id == jump.id;
         
-        // Reset filters BEFORE deletion if this is the last filtered jump
+        // Delete the jump first
+        await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
+        
+        // Reset filters AFTER deletion if this was the last filtered jump
+        // This ensures the UI rebuilds with all remaining jumps
         if (isLastFilteredJump && mounted) {
-          setState(() {
-            _selectedJumpTypeFilter = null;
-            _selectedJumpMethodFilter = null;
-            _selectedLocationFilter = null;
+          // Wait for the provider to update, then reset filters
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _selectedJumpTypeFilter = null;
+                _selectedJumpMethodFilter = null;
+                _selectedLocationFilter = null;
+              });
+            }
           });
         }
-        
-        await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -648,6 +655,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
           }
           
           // If filtered list is empty but there are still jumps, reset all filters immediately
+          // This handles the case when the last filtered jump is deleted
           if (jumps.isEmpty && allJumps.isNotEmpty) {
             // Check if any filters are active
             if (_selectedJumpTypeFilter != null || _selectedJumpMethodFilter != null || _selectedLocationFilter != null) {
@@ -656,17 +664,19 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
               _selectedJumpMethodFilter = null;
               _selectedLocationFilter = null;
               filtersChanged = true;
-              // Show all jumps for this render
+              // Show all jumps for this render (before setState triggers rebuild)
               jumps = allJumps;
             }
           }
           
           // Trigger setState if filters were changed (after build completes)
+          // This ensures the UI rebuilds with cleared filters
           if (filtersChanged) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 setState(() {
                   // Filters already reset above, just trigger rebuild
+                  // This will cause the build method to run again with cleared filters
                 });
               }
             });
