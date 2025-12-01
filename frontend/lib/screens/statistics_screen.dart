@@ -589,6 +589,32 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       ),
       body: jumpsAsync.when(
         data: (allJumps) {
+          // Reset filters if selected values are no longer available
+          if (_selectedJumpTypeFilter != null) {
+            final hasJumpType = allJumps.any((j) => j.jumpType == _selectedJumpTypeFilter);
+            if (!hasJumpType) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _selectedJumpTypeFilter = null;
+                  });
+                }
+              });
+            }
+          }
+          if (_selectedJumpMethodFilter != null) {
+            final hasJumpMethod = allJumps.any((j) => j.jumpMethod == _selectedJumpMethodFilter);
+            if (!hasJumpMethod) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _selectedJumpMethodFilter = null;
+                  });
+                }
+              });
+            }
+          }
+          
           // Filter jumps based on selected filters
           List<Jump> jumps = allJumps;
           if (_selectedJumpTypeFilter != null) {
@@ -1171,8 +1197,22 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                         ),
                         const SizedBox(height: 20),
                         locationsAsync.when(
-                          data: (locations) => DropdownButtonFormField<String>(
-                            value: _selectedLocationFilter,
+                          data: (locations) {
+                            // Reset filter if selected location is no longer available
+                            if (_selectedLocationFilter != null && !locations.contains(_selectedLocationFilter)) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted) {
+                                  setState(() {
+                                    _selectedLocationFilter = null;
+                                  });
+                                }
+                              });
+                            }
+                            
+                            return DropdownButtonFormField<String>(
+                              value: _selectedLocationFilter != null && locations.contains(_selectedLocationFilter)
+                                  ? _selectedLocationFilter
+                                  : null,
                             decoration: InputDecoration(
                               labelText: 'Nach Ort filtern',
                               hintText: 'Alle Orte',

@@ -52,14 +52,17 @@ class _FreefallDetectionWidgetState extends ConsumerState<FreefallDetectionWidge
     _statsSubscription = _detectionService!.statsStream.listen((stats) {
       if (mounted) {
         setState(() {
-          // Only update _currentStats if stats is not null (exit detected)
+          // Update _currentStats if stats is not null (exit detected)
           // If stats is null, detection is running but exit not yet detected
           if (stats != null) {
             _currentStats = stats;
           }
         });
+        // Always call onStatsUpdated to ensure parent widget gets the latest stats
         widget.onStatsUpdated(stats);
       }
+    }, onError: (error) {
+      debugPrint('Error in stats stream: $error');
     });
 
     // Update UI every second to show detection runtime
@@ -89,17 +92,23 @@ class _FreefallDetectionWidgetState extends ConsumerState<FreefallDetectionWidge
     if (_detectionService == null) return;
     
     try {
+      // Get stats before stopping (in case stream is already closed)
+      final statsBeforeStop = _detectionService!.getCurrentStats();
+      
       await _detectionService!.stopDetection();
       _statsSubscription?.cancel();
       _updateTimer?.cancel();
       
-      final finalStats = _detectionService!.getCurrentStats();
+      // Get final stats after stopping
+      final finalStats = _detectionService!.getCurrentStats() ?? statsBeforeStop;
+      
       if (mounted) {
         setState(() {
           _isDetecting = false;
           _currentStats = finalStats;
           _detectionStartTime = null;
         });
+        // Always update parent widget with final stats
         widget.onStatsUpdated(finalStats);
       }
     } catch (e) {

@@ -65,12 +65,17 @@ class FreefallDetectionService {
   
   /// Stop freefall detection
   Future<void> stopDetection() async {
-    _isDetecting = false;
+    // Don't do anything if already stopped
+    if (!_isDetecting) {
+      return;
+    }
     
+    _isDetecting = false;
+
     // Stop simulation timer
     _simulationTimer?.cancel();
     _simulationTimer = null;
-    
+
     // Stop sensor subscriptions
     await _accelerometerSubscription?.cancel();
     await _gyroscopeSubscription?.cancel();
@@ -78,9 +83,14 @@ class FreefallDetectionService {
     _accelerometerSubscription = null;
     _gyroscopeSubscription = null;
     _magnetometerSubscription = null;
-    
-    // Calculate final stats if we have exit time
-    if (_exitTime != null) {
+
+    // Calculate final stats if we have exit time and haven't already calculated them
+    if (_exitTime != null && _deploymentTime == null) {
+      // If deployment wasn't detected, use current time as end time
+      _deploymentTime = DateTime.now();
+      _calculateFinalStats();
+    } else if (_exitTime != null && _currentStats == null) {
+      // If we have exit time but no stats yet, calculate them
       _calculateFinalStats();
     }
   }
@@ -249,7 +259,10 @@ class FreefallDetectionService {
       deploymentTime: _deploymentTime,
     );
     
-    _statsController.add(_currentStats);
+    // Only add to stream if it's not closed
+    if (!_statsController.isClosed) {
+      _statsController.add(_currentStats);
+    }
   }
   
   void _calculateFinalStats() {
@@ -261,7 +274,10 @@ class FreefallDetectionService {
     // Validate duration
     if (duration < minFreefallDuration || duration > maxFreefallDuration) {
       _currentStats = null;
-      _statsController.add(null);
+      // Only add to stream if it's not closed
+      if (!_statsController.isClosed) {
+        _statsController.add(null);
+      }
       return;
     }
     
@@ -272,7 +288,10 @@ class FreefallDetectionService {
       deploymentTime: _deploymentTime,
     );
     
-    _statsController.add(_currentStats);
+    // Only add to stream if it's not closed
+    if (!_statsController.isClosed) {
+      _statsController.add(_currentStats);
+    }
   }
   
   // Simulated detection for testing
@@ -351,10 +370,10 @@ class FreefallDetectionService {
         _deploymentTime = now;
         _inFreefall = false;
         print('Simulated deployment detected at ${elapsed}s (${timeSinceExit.toStringAsFixed(1)}s freefall)');
-        _calculateFinalStats();
+        _isDetecting = false; // Stop detection first
+        _calculateFinalStats(); // Calculate final stats (will check if stream is closed)
         timer.cancel();
         _simulationTimer = null;
-        _isDetecting = false; // Stop detection
         return;
       }
       
@@ -371,7 +390,9 @@ class FreefallDetectionService {
         _updateCurrentStats();
       } else {
         // Send null stats to indicate detection is running but no exit yet
-        _statsController.add(null);
+        if (!_statsController.isClosed) {
+          _statsController.add(null);
+        }
       }
     });
   }
