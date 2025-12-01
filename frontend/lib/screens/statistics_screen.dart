@@ -78,6 +78,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   StatisticsFilters? _cachedFilters;
   
   StatisticsFilters get _filters {
+    // Create new filters object from current filter state
     final newFilters = StatisticsFilters(
       location: _selectedLocationFilter,
       jumpType: _selectedJumpTypeFilter?.toString().split('.').last.toLowerCase(),
@@ -85,12 +86,22 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     );
     
     // Use cached filters if they're the same (stable reference for Riverpod)
+    // This prevents unnecessary provider rebuilds
     if (_cachedFilters != null && _cachedFilters == newFilters) {
       return _cachedFilters!;
     }
     
+    // Update cache with new filters
     _cachedFilters = newFilters;
     return _cachedFilters!;
+  }
+  
+  // Helper method to completely reset all filters
+  void _resetAllFilters() {
+    _selectedJumpTypeFilter = null;
+    _selectedJumpMethodFilter = null;
+    _selectedLocationFilter = null;
+    _cachedFilters = null;
   }
   
   void _centerMapOnLocations(List<dynamic> locationsWithCoords) {
@@ -234,13 +245,13 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
 
   void _clearAllFilters() {
     setState(() {
-      _selectedLocationFilter = null;
-      _selectedJumpTypeFilter = null;
-      _selectedJumpMethodFilter = null;
-      _cachedFilters = null; // Reset cache to create new filter object
+      _resetAllFilters();
     });
     ref.read(jumpNotifierProvider.notifier).setLocationFilter(null);
-    // Family providers will automatically reload with new filter key
+    // Invalidate providers to ensure they recalculate with cleared filters
+    ref.invalidate(totalJumpsProvider);
+    ref.invalidate(statisticsSummaryProvider);
+    ref.invalidate(distinctLocationsProvider);
   }
 
   bool get _hasActiveFilters {
@@ -555,14 +566,18 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
         
         // If this was the last filtered jump, reset filters AFTER deletion
-        // The build() method will handle showing all jumps when filters are cleared
+        // CRITICAL: Reset ALL filter state and invalidate providers to ensure consistency
         if (isLastFilteredJump && mounted) {
           setState(() {
-            _selectedJumpTypeFilter = null;
-            _selectedJumpMethodFilter = null;
-            _selectedLocationFilter = null;
-            _cachedFilters = null;
+            // Reset all filter variables COMPLETELY
+            _resetAllFilters();
           });
+          
+          // Invalidate statistics providers to force recalculation with cleared filters
+          // This ensures statistics and jump list are synchronized
+          ref.invalidate(totalJumpsProvider);
+          ref.invalidate(statisticsSummaryProvider);
+          ref.invalidate(distinctLocationsProvider);
         }
         
         if (mounted) {
@@ -655,14 +670,22 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
           if (jumps.isEmpty && allJumps.isNotEmpty) {
             // Check if any filters are actually active
             if (_selectedJumpTypeFilter != null || _selectedJumpMethodFilter != null || _selectedLocationFilter != null) {
-              // Reset all filters
-              _selectedJumpTypeFilter = null;
-              _selectedJumpMethodFilter = null;
-              _selectedLocationFilter = null;
-              _cachedFilters = null;
+              // Reset all filters COMPLETELY using helper method
+              _resetAllFilters();
               filtersChanged = true;
+              
               // IMPORTANT: Set jumps to allJumps immediately for this render
               jumps = allJumps;
+              
+              // CRITICAL: Invalidate statistics providers to force recalculation with cleared filters
+              // This ensures statistics and jump list are synchronized
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  ref.invalidate(totalJumpsProvider);
+                  ref.invalidate(statisticsSummaryProvider);
+                  ref.invalidate(distinctLocationsProvider);
+                }
+              });
             }
           }
           
