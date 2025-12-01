@@ -1307,6 +1307,55 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                           ],
                                         ),
                                       ],
+                                      if (jump.freefallStats != null && jump.freefallStats!.hasData) ...[
+                                        const SizedBox(height: 8),
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.flight_takeoff,
+                                                size: 16,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    if (jump.freefallStats!.freefallDurationSeconds != null)
+                                                      Text(
+                                                        'Freefall: ${jump.freefallStats!.freefallDurationSeconds!.toStringAsFixed(1)}s',
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w600,
+                                                          color: Theme.of(context).colorScheme.onSurface,
+                                                        ),
+                                                      ),
+                                                    if (jump.freefallStats!.maxVerticalVelocityMs != null) ...[
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        'Max: ${jump.freefallStats!.maxVerticalVelocityKmh!.toStringAsFixed(1)} km/h',
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),

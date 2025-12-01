@@ -1,5 +1,6 @@
 import '../models/jump.dart';
 import '../models/equipment.dart';
+import '../models/freefall_stats.dart';
 import 'api_service.dart';
 
 class JumpService {
@@ -17,6 +18,7 @@ class JumpService {
     JumpMethod? jumpMethod,
     List<String> equipmentIds = const [],
     String? notes,
+    FreefallStats? freefallStats,
   }) async {
     final jump = await _api.createJump(
       date: date,
@@ -28,6 +30,7 @@ class JumpService {
       jumpMethod: jumpMethod,
       equipmentIds: equipmentIds,
       notes: notes,
+      freefallStats: freefallStats,
     );
     return jump.id;
   }

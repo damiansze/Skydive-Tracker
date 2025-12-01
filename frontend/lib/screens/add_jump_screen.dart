@@ -5,9 +5,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/jump.dart';
 import '../models/equipment.dart';
+import '../models/freefall_stats.dart';
 import '../providers/jump_provider.dart';
 import '../providers/equipment_provider.dart';
 import '../services/geocoding_service.dart';
+import '../widgets/freefall_detection_widget.dart';
 import 'map_location_picker_screen.dart';
 import 'settings_screen.dart';
 
@@ -39,6 +41,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   bool _isGeocoding = false;
   List<String> _locationSuggestions = [];
   bool _showSuggestions = false;
+  FreefallStats? _freefallStats;
 
   @override
   void initState() {
@@ -65,6 +68,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     _selectedJumpType = jump.jumpType;
     _selectedJumpMethod = jump.jumpMethod;
     _selectedEquipmentIds = jump.equipmentIds.toSet();
+    _freefallStats = jump.freefallStats;
     
     if (_latitude != null && _longitude != null) {
       _currentLocation = LatLng(_latitude!, _longitude!);
@@ -272,6 +276,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           jumpMethod: _selectedJumpMethod,
           equipmentIds: _selectedEquipmentIds.toList(),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+          freefallStats: _freefallStats,
         );
         await jumpNotifier.updateJump(updatedJump);
       } else {
@@ -285,6 +290,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           jumpMethod: _selectedJumpMethod,
           equipmentIds: _selectedEquipmentIds.toList(),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+          freefallStats: _freefallStats,
         );
       }
 
@@ -631,6 +637,19 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stack) => Text('Fehler beim Laden: $error'),
               ),
+              const SizedBox(height: 16),
+              
+              // Freefall Detection (only for new jumps)
+              if (widget.jump == null)
+                FreefallDetectionWidget(
+                  useSimulation: const bool.fromEnvironment('USE_SIMULATED_SENSORS', defaultValue: false),
+                  onStatsUpdated: (stats) {
+                    setState(() {
+                      _freefallStats = stats;
+                    });
+                  },
+                ),
+              if (widget.jump == null) const SizedBox(height: 16),
               
               // Notes
               TextFormField(

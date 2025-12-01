@@ -56,6 +56,9 @@ dependencies:
   
   # Image Picker
   image_picker: ^1.0.7
+  
+  # Sensors
+  sensors_plus: ^4.0.2
 
 dev_dependencies:
   flutter_test:

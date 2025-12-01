@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/jump.dart';
+import '../models/freefall_stats.dart';
 import '../services/jump_service.dart';
 import 'database_provider.dart';
 import 'profile_provider.dart';
@@ -46,6 +47,7 @@ class JumpNotifier extends StateNotifier<AsyncValue<List<Jump>>> {
     JumpMethod? jumpMethod,
     List<String> equipmentIds = const [],
     String? notes,
+    FreefallStats? freefallStats,
   }) async {
     try {
       await _service.createJump(
@@ -58,6 +60,7 @@ class JumpNotifier extends StateNotifier<AsyncValue<List<Jump>>> {
         jumpMethod: jumpMethod,
         equipmentIds: equipmentIds,
         notes: notes,
+        freefallStats: freefallStats,
       );
       await _loadJumps();
       // Refresh profile to update total jumps count

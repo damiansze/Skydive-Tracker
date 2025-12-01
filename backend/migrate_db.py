@@ -59,6 +59,26 @@ def migrate_database():
         else:
             print("✓ profile_picture_url column already exists")
         
+        # Check and add freefall_stats columns to jumps table
+        cursor.execute("PRAGMA table_info(jumps)")
+        columns = [column[1] for column in cursor.fetchall()]
+        
+        freefall_columns = {
+            'freefall_duration_seconds': 'REAL',
+            'max_vertical_velocity_ms': 'REAL',
+            'exit_time': 'DATETIME',
+            'deployment_time': 'DATETIME',
+        }
+        
+        for col_name, col_type in freefall_columns.items():
+            if col_name not in columns:
+                print(f"Adding {col_name} column to jumps table...")
+                cursor.execute(f"ALTER TABLE jumps ADD COLUMN {col_name} {col_type}")
+                conn.commit()
+                print(f"✓ Added {col_name} column")
+            else:
+                print(f"✓ {col_name} column already exists")
+        
         print("\nMigration completed successfully!")
         
     except Exception as e:

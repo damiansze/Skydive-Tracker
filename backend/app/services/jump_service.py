@@ -47,6 +47,13 @@ class JumpService:
             notes=jump_data.notes,
         )
         
+        # Set freefall stats if provided
+        if jump_data.freefall_stats:
+            jump.freefall_duration_seconds = jump_data.freefall_stats.freefall_duration_seconds
+            jump.max_vertical_velocity_ms = jump_data.freefall_stats.max_vertical_velocity_ms
+            jump.exit_time = jump_data.freefall_stats.exit_time
+            jump.deployment_time = jump_data.freefall_stats.deployment_time
+        
         # Add equipment associations
         if jump_data.equipment_ids:
             equipment_items = db.query(Equipment).filter(
@@ -79,10 +86,19 @@ class JumpService:
         if not jump:
             return None
         
-        update_data = jump_update.dict(exclude_unset=True)
+        update_data = jump_update.model_dump(exclude_unset=True)
         
         # Remove deprecated fields that should not be updated
         update_data.pop("checklist_completed", None)  # Deprecated - always ignore
+        
+        # Handle freefall_stats update separately
+        if "freefall_stats" in update_data:
+            freefall_stats = update_data.pop("freefall_stats")
+            if freefall_stats:
+                jump.freefall_duration_seconds = freefall_stats.get("freefall_duration_seconds")
+                jump.max_vertical_velocity_ms = freefall_stats.get("max_vertical_velocity_ms")
+                jump.exit_time = freefall_stats.get("exit_time")
+                jump.deployment_time = freefall_stats.get("deployment_time")
         
         # Handle equipment update separately
         if "equipment_ids" in update_data:

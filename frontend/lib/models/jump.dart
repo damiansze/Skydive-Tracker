@@ -1,3 +1,5 @@
+import 'freefall_stats.dart';
+
 enum JumpType {
   TANDEM,
   SOLO,
@@ -63,6 +65,7 @@ class Jump {
   final List<String> equipmentIds;
   final String? notes;
   final DateTime createdAt;
+  final FreefallStats? freefallStats;
 
   Jump({
     required this.id,
@@ -76,6 +79,7 @@ class Jump {
     this.equipmentIds = const [],
     this.notes,
     required this.createdAt,
+    this.freefallStats,
   });
 
   Map<String, dynamic> toMap() {
@@ -90,6 +94,7 @@ class Jump {
       'jump_method': jumpMethod?.toString().split('.').last.toLowerCase(),
       'notes': notes,
       'created_at': createdAt.toIso8601String(),
+      'freefall_stats': freefallStats?.toMap(),
     };
   }
 
@@ -138,6 +143,9 @@ class Jump {
       equipmentIds: equipmentIds,
       notes: map['notes'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
+      freefallStats: map['freefall_stats'] != null
+          ? FreefallStats.fromMap(map['freefall_stats'] as Map<String, dynamic>?)
+          : null,
     );
   }
 
@@ -153,6 +161,7 @@ class Jump {
     List<String>? equipmentIds,
     String? notes,
     DateTime? createdAt,
+    FreefallStats? freefallStats,
   }) {
     return Jump(
       id: id ?? this.id,
@@ -166,6 +175,7 @@ class Jump {
       equipmentIds: equipmentIds ?? this.equipmentIds,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
+      freefallStats: freefallStats ?? this.freefallStats,
     );
   }
 }
