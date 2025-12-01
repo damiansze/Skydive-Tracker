@@ -649,7 +649,6 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
               // Freefall Detection (only for new jumps)
               if (widget.jump == null)
                 FreefallDetectionWidget(
-                  useSimulation: const bool.fromEnvironment('USE_SIMULATED_SENSORS', defaultValue: true), // Default to simulation for testing
                   onStatsUpdated: (stats) {
                     setState(() {
                       _freefallStats = stats;

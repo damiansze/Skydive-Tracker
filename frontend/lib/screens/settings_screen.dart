@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/profile_provider.dart';
 import '../providers/database_provider.dart';
+import '../services/freefall_detection_service.dart';
 import 'profile_screen.dart';
 
 final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
@@ -225,6 +226,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (value != null) {
                   ref.read(timeFormatProvider.notifier).setTimeFormat(value);
                 }
+              },
+            ),
+          ),
+          const Divider(),
+          
+          // Freefall Detection Simulation Toggle (Debug/Testing)
+          ListTile(
+            leading: const Icon(Icons.science),
+            title: const Text('Freefall-Simulation'),
+            subtitle: const Text('Simulierte Sensordaten für Tests verwenden'),
+            trailing: Switch(
+              value: FreefallDetectionService.useSimulatedSensors,
+              onChanged: (value) {
+                FreefallDetectionService.setUseSimulation(value);
+                setState(() {}); // Rebuild to update UI
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      value 
+                        ? 'Simulation aktiviert - Neustart der App empfohlen'
+                        : 'Simulation deaktiviert - Neustart der App empfohlen',
+                    ),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
               },
             ),
           ),

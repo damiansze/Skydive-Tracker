@@ -7,12 +7,10 @@ import 'package:intl/intl.dart';
 
 class FreefallDetectionWidget extends ConsumerStatefulWidget {
   final Function(FreefallStats?) onStatsUpdated;
-  final bool useSimulation;
 
   const FreefallDetectionWidget({
     super.key,
     required this.onStatsUpdated,
-    this.useSimulation = false,
   });
 
   @override
@@ -161,7 +159,7 @@ class _FreefallDetectionWidgetState extends ConsumerState<FreefallDetectionWidge
                   ),
                 ),
                 const Spacer(),
-                if (widget.useSimulation)
+                if (FreefallDetectionService.useSimulatedSensors)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(

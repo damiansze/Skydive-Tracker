@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map/src/layer/tile_layer/tile_provider/network_tile_provider.dart';
 import '../models/jump.dart';
 import '../providers/jump_provider.dart';
 import '../providers/database_provider.dart';
@@ -936,11 +935,6 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                   userAgentPackageName: 'com.example.flutter_skydive_tracker',
                                   maxZoom: 19,
-                                  tileProvider: NetworkTileProvider(
-                                    headers: const {
-                                      'User-Agent': 'SkydiveTracker/1.0',
-                                    },
-                                  ),
                                   errorTileCallback: (tile, error, stackTrace) {
                                     // Handle tile loading errors gracefully
                                     debugPrint('Tile loading error: $error');

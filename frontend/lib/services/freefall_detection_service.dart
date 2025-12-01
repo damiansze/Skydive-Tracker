@@ -5,9 +5,17 @@ import '../models/freefall_stats.dart';
 
 /// Service for detecting freefall using device sensors
 class FreefallDetectionService {
-  // For testing: Use environment variable to enable simulation
+  // For testing: Use environment variable or runtime flag to enable simulation
   // Set USE_SIMULATED_SENSORS=true when running: flutter run --dart-define=USE_SIMULATED_SENSORS=true
-  static const bool useSimulatedSensors = bool.fromEnvironment('USE_SIMULATED_SENSORS', defaultValue: false);
+  // Or use setUseSimulation() to toggle at runtime
+  static bool _useSimulationOverride = false;
+  static bool get useSimulatedSensors => 
+      bool.fromEnvironment('USE_SIMULATED_SENSORS', defaultValue: false) || _useSimulationOverride;
+  
+  /// Set simulation mode at runtime (for testing/debugging)
+  static void setUseSimulation(bool enabled) {
+    _useSimulationOverride = enabled;
+  }
   
   // Detection thresholds
   static const double exitAccelerationThreshold = 2.0; // m/s² - sudden acceleration change
@@ -196,8 +204,10 @@ class FreefallDetectionService {
     final avgAccel = recentReadings.map((r) => r.acceleration).reduce((a, b) => a + b) / recentReadings.length;
     
     // Deployment is detected when there's strong deceleration
-    // (acceleration significantly higher than freefall)
-    return reading.acceleration > deploymentDecelerationThreshold;
+    // (acceleration significantly higher than freefall average)
+    // Compare current reading to average to detect sudden change
+    return reading.acceleration > deploymentDecelerationThreshold && 
+           reading.acceleration > avgAccel * 2.0; // Must be at least 2x the average
   }
   
   double _calculateVelocity() {
