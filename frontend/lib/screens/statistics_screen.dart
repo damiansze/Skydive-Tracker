@@ -261,6 +261,95 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     }
   }
 
+  Widget _buildStatCard(
+    BuildContext context, {
+    required IconData icon,
+    required Color iconColor,
+    required AsyncValue<int> value,
+    required String label,
+    required Gradient gradient,
+  }) {
+    return Container(
+      height: 140,
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                value.when(
+                  data: (val) => Text(
+                    '$val',
+                    style: const TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      height: 1.1,
+                    ),
+                  ),
+                  loading: () => const SizedBox(
+                    height: 36,
+                    width: 36,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  error: (_, __) => const Text(
+                    '?',
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                    height: 1.2,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _deleteJump(Jump jump) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -343,195 +432,273 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
           }
           
           return SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Column(
               children: [
-                // Statistics Card
-                Card(
-                  margin: const EdgeInsets.all(16.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Statistiken',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                // Main Statistics Cards
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          context,
+                          icon: Icons.paragliding,
+                          iconColor: Theme.of(context).colorScheme.primary,
+                          value: totalJumpsAsync,
+                          label: _selectedLocationFilter != null
+                              ? 'Sprünge in\n${_selectedLocationFilter!}'
+                              : 'Gesamte\nSprünge',
+                          gradient: LinearGradient(
+                            colors: [
+                              Theme.of(context).colorScheme.primary,
+                              Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  totalJumpsAsync.when(
-                                    data: (totalJumps) => Text(
-                                      '$totalJumps',
-                                      style: const TextStyle(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    loading: () => const CircularProgressIndicator(),
-                                    error: (_, __) => const Text('?'),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _selectedLocationFilter != null
-                                        ? 'Sprünge in\n${_selectedLocationFilter!}'
-                                        : 'Gesamte Sprünge',
-                                    textAlign: TextAlign.center,
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  Text(
-                                    '${jumps.map((j) => j.location).toSet().length}',
-                                    style: const TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _selectedLocationFilter != null
-                                        ? 'Sprungplatz'
-                                        : 'Sprungplätze',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          context,
+                          icon: Icons.location_on,
+                          iconColor: Colors.orange,
+                          value: AsyncValue.data(jumps.map((j) => j.location).toSet().length),
+                          label: _selectedLocationFilter != null
+                              ? 'Sprungplatz'
+                              : 'Sprung-\nplätze',
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.orange,
+                              Colors.orange.withValues(alpha: 0.7),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 16),
-                        const Divider(),
-                        const SizedBox(height: 16),
-                        // Jump Type and Method Statistics
-                        statisticsSummaryAsync.when(
-                          data: (summary) {
-                            final jumpTypeCounts = summary['jump_type_counts'] as Map<String, dynamic>? ?? {};
-                            final jumpMethodCounts = summary['jump_method_counts'] as Map<String, dynamic>? ?? {};
-                            
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (jumpTypeCounts.isNotEmpty) ...[
-                                  const Text(
-                                    'Sprungtypen',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 4,
-                                    children: jumpTypeCounts.entries.map((entry) {
-                                      final typeString = entry.key;
-                                      final count = entry.value as int;
-                                      JumpType? type;
-                                      try {
-                                        type = JumpType.values.firstWhere(
-                                          (e) => e.toString().split('.').last.toLowerCase() == typeString,
-                                        );
-                                      } catch (e) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      final isSelected = _selectedJumpTypeFilter == type;
-                                      return InkWell(
-                                        onTap: () => _onJumpTypeFilterChanged(type),
-                                        child: Chip(
-                                          label: Text('${type.displayName}: $count'),
-                                          avatar: const Icon(Icons.paragliding, size: 18),
-                                          backgroundColor: isSelected 
-                                              ? Theme.of(context).colorScheme.primaryContainer
-                                              : null,
-                                          side: isSelected
-                                              ? BorderSide(
-                                                  color: Theme.of(context).colorScheme.primary,
-                                                  width: 2,
-                                                )
-                                              : null,
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                  const SizedBox(height: 16),
-                                ],
-                                if (jumpMethodCounts.isNotEmpty) ...[
-                                  const Text(
-                                    'Sprungmethoden',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 4,
-                                    children: jumpMethodCounts.entries.map((entry) {
-                                      final methodString = entry.key;
-                                      final count = entry.value as int;
-                                      JumpMethod? method;
-                                      try {
-                                        method = JumpMethod.values.firstWhere(
-                                          (e) => e.toString().split('.').last.toLowerCase() == methodString,
-                                        );
-                                      } catch (e) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      final isSelected = _selectedJumpMethodFilter == method;
-                                      return InkWell(
-                                        onTap: () => _onJumpMethodFilterChanged(method),
-                                        child: Chip(
-                                          label: Text('${method.displayName}: $count'),
-                                          avatar: Icon(
-                                            method == JumpMethod.PLANE 
-                                                ? Icons.flight 
-                                                : method == JumpMethod.HELICOPTER
-                                                    ? Icons.flight_takeoff
-                                                    : method == JumpMethod.BASE
-                                                        ? Icons.landscape
-                                                        : Icons.location_on,
-                                            size: 18,
-                                          ),
-                                          backgroundColor: isSelected 
-                                              ? Theme.of(context).colorScheme.primaryContainer
-                                              : null,
-                                          side: isSelected
-                                              ? BorderSide(
-                                                  color: Theme.of(context).colorScheme.primary,
-                                                  width: 2,
-                                                )
-                                              : null,
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ],
-                              ],
-                            );
-                          },
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const SizedBox.shrink(),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(height: 20),
+                // Jump Type and Method Statistics
+                statisticsSummaryAsync.when(
+                  data: (summary) {
+                    final jumpTypeCounts = summary['jump_type_counts'] as Map<String, dynamic>? ?? {};
+                    final jumpMethodCounts = summary['jump_method_counts'] as Map<String, dynamic>? ?? {};
+                    
+                    if (jumpTypeCounts.isEmpty && jumpMethodCounts.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.analytics_outlined,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Verteilung',
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            if (jumpTypeCounts.isNotEmpty) ...[
+                              Text(
+                                'Sprungtypen',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: jumpTypeCounts.entries.map((entry) {
+                                  final typeString = entry.key;
+                                  final count = entry.value as int;
+                                  JumpType? type;
+                                  try {
+                                    type = JumpType.values.firstWhere(
+                                      (e) => e.toString().split('.').last.toLowerCase() == typeString,
+                                    );
+                                  } catch (e) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  final isSelected = _selectedJumpTypeFilter == type;
+                                  return FilterChip(
+                                    label: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.paragliding,
+                                          size: 16,
+                                          color: isSelected
+                                              ? Theme.of(context).colorScheme.onPrimaryContainer
+                                              : null,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '${type.displayName}',
+                                          style: TextStyle(
+                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.2)
+                                                : Theme.of(context).colorScheme.surfaceContainerHighest,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            '$count',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected
+                                                  ? Theme.of(context).colorScheme.onPrimaryContainer
+                                                  : Theme.of(context).colorScheme.onSurface,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    selected: isSelected,
+                                    onSelected: (_) => _onJumpTypeFilterChanged(type),
+                                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                                    side: BorderSide(
+                                      color: isSelected
+                                          ? Theme.of(context).colorScheme.primary
+                                          : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                  );
+                                }).toList(),
+                              ),
+                              if (jumpMethodCounts.isNotEmpty) const SizedBox(height: 20),
+                            ],
+                            if (jumpMethodCounts.isNotEmpty) ...[
+                              Text(
+                                'Sprungmethoden',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: jumpMethodCounts.entries.map((entry) {
+                                  final methodString = entry.key;
+                                  final count = entry.value as int;
+                                  JumpMethod? method;
+                                  try {
+                                    method = JumpMethod.values.firstWhere(
+                                      (e) => e.toString().split('.').last.toLowerCase() == methodString,
+                                    );
+                                  } catch (e) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  final isSelected = _selectedJumpMethodFilter == method;
+                                  IconData methodIcon = method == JumpMethod.PLANE 
+                                      ? Icons.flight 
+                                      : method == JumpMethod.HELICOPTER
+                                          ? Icons.flight_takeoff
+                                          : method == JumpMethod.BASE
+                                              ? Icons.landscape
+                                              : Icons.location_on;
+                                  return FilterChip(
+                                    label: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          methodIcon,
+                                          size: 16,
+                                          color: isSelected
+                                              ? Theme.of(context).colorScheme.onPrimaryContainer
+                                              : null,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          method.displayName,
+                                          style: TextStyle(
+                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.2)
+                                                : Theme.of(context).colorScheme.surfaceContainerHighest,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            '$count',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected
+                                                  ? Theme.of(context).colorScheme.onPrimaryContainer
+                                                  : Theme.of(context).colorScheme.onSurface,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    selected: isSelected,
+                                    onSelected: (_) => _onJumpMethodFilterChanged(method),
+                                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                                    side: BorderSide(
+                                      color: isSelected
+                                          ? Theme.of(context).colorScheme.primary
+                                          : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  loading: () => Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: const Padding(
+                      padding: EdgeInsets.all(40.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+                const SizedBox(height: 20),
                 
                 // Map with jump locations
                 statisticsSummaryAsync.when(
@@ -567,12 +734,18 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                     double avgLng = points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length;
                     
                     return Card(
-                      margin: const EdgeInsets.all(16.0),
+                      margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Stack(
                         children: [
-                          SizedBox(
-                            height: 300,
-                            child: FlutterMap(
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: SizedBox(
+                              height: 320,
+                              child: FlutterMap(
                               mapController: _mapController,
                               options: MapOptions(
                                 initialCenter: LatLng(avgLat, avgLng),
@@ -664,219 +837,533 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                 ),
                               ],
                             ),
+                            ),
                           ),
                           Positioned(
-                            top: 8,
-                            right: 8,
-                            child: FloatingActionButton.small(
-                              onPressed: () {
-                                _centerMapOnLocations(locationsWithCoords);
-                              },
-                              tooltip: 'Karte zentrieren',
-                              child: const Icon(Icons.center_focus_strong),
+                            top: 12,
+                            right: 12,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: IconButton(
+                                icon: Icon(
+                                  Icons.center_focus_strong,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                tooltip: 'Karte zentrieren',
+                                onPressed: () {
+                                  _centerMapOnLocations(locationsWithCoords);
+                                },
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 12,
+                            left: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.map,
+                                    size: 18,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Sprungplätze',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
                       ),
                     );
                   },
-                  loading: () => const Card(
-                    margin: EdgeInsets.all(16.0),
-                    child: SizedBox(
-                      height: 300,
+                  loading: () => Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: const SizedBox(
+                      height: 320,
                       child: Center(child: CircularProgressIndicator()),
                     ),
                   ),
                   error: (error, stack) => Card(
-                    margin: const EdgeInsets.all(16.0),
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: SizedBox(
-                      height: 300,
+                      height: 320,
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                            const SizedBox(height: 8),
-                            Text('Fehler beim Laden der Karte: $error'),
+                            Icon(
+                              Icons.error_outline,
+                              size: 48,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            const SizedBox(height: 12),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Text(
+                                'Fehler beim Laden der Karte',
+                                style: Theme.of(context).textTheme.titleMedium,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Text(
+                                error.toString(),
+                                style: Theme.of(context).textTheme.bodySmall,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
               
-              // Filter Section
-              Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.filter_list),
-                              SizedBox(width: 8),
-                              Text(
-                                'Filter',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                // Filter Section
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.filter_list,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Filter',
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_hasActiveFilters)
+                              FilledButton.icon(
+                                onPressed: _clearAllFilters,
+                                icon: const Icon(Icons.clear_all, size: 18),
+                                label: const Text('Zurücksetzen'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                                  foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 ),
                               ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        locationsAsync.when(
+                          data: (locations) => DropdownButtonFormField<String>(
+                            value: _selectedLocationFilter,
+                            decoration: InputDecoration(
+                              labelText: 'Nach Ort filtern',
+                              hintText: 'Alle Orte',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: Icon(
+                                Icons.location_on,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              filled: true,
+                              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            ),
+                            isExpanded: true,
+                            borderRadius: BorderRadius.circular(12),
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.public,
+                                      size: 20,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Alle Orte',
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              ...locations.map((location) {
+                                return DropdownMenuItem<String>(
+                                  value: location,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.place,
+                                        size: 20,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          location,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
                             ],
+                            onChanged: _onLocationFilterChanged,
                           ),
-                          if (_hasActiveFilters)
-                            TextButton.icon(
-                              onPressed: _clearAllFilters,
-                              icon: const Icon(Icons.clear_all, size: 18),
-                              label: const Text('Alle zurücksetzen'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: Theme.of(context).colorScheme.error,
-                              ),
+                          loading: () => Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      locationsAsync.when(
-                        data: (locations) => DropdownButtonFormField<String>(
-                          value: _selectedLocationFilter,
-                          decoration: const InputDecoration(
-                            labelText: 'Nach Ort filtern',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.location_on),
+                            child: const LinearProgressIndicator(),
                           ),
-                          isExpanded: true,
-                          items: [
-                            const DropdownMenuItem<String>(
-                              value: null,
-                              child: Text('Alle Orte'),
+                          error: (_, __) => Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            ...locations.map((location) {
-                              return DropdownMenuItem<String>(
-                                value: location,
-                                child: Text(
-                                  location,
-                                  overflow: TextOverflow.ellipsis,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  color: Theme.of(context).colorScheme.error,
                                 ),
-                              );
-                            }),
-                          ],
-                          onChanged: _onLocationFilterChanged,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Fehler beim Laden der Orte',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onErrorContainer,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        loading: () => const LinearProgressIndicator(),
-                        error: (_, __) => const Text('Fehler beim Laden der Orte'),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
               const SizedBox(height: 16),
               
-              // Jumps List
-              if (jumps.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.paragliding,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Noch keine Sprünge erfasst',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ],
+                // Jumps List Header
+                if (jumps.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.list_alt,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Sprünge',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${jumps.length}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )
-              else
-                ...jumps.map((jump) {
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 4.0,
-                    ),
-                    child: ListTile(
-                      leading: const Icon(Icons.paragliding),
-                      title: Text(jump.location),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            DateFormat('dd.MM.yyyy HH:mm')
-                                .format(jump.date),
+                  const SizedBox(height: 12),
+                ],
+              
+                // Jumps List
+                if (jumps.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(48.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
                           ),
-                          Text('Höhe: ${jump.altitude} m'),
-                          if (jump.jumpType != null || jump.jumpMethod != null)
-                            Wrap(
-                              spacing: 8,
-                              children: [
-                                if (jump.jumpType != null)
-                                  InkWell(
-                                    onTap: () => _onJumpTypeFilterChanged(jump.jumpType),
-                                    child: Chip(
-                                      label: Text(jump.jumpType!.displayName),
-                                      labelStyle: const TextStyle(fontSize: 11),
-                                      padding: EdgeInsets.zero,
-                                    ),
-                                  ),
-                                if (jump.jumpMethod != null)
-                                  InkWell(
-                                    onTap: () => _onJumpMethodFilterChanged(jump.jumpMethod),
-                                    child: Chip(
-                                      label: Text(jump.jumpMethod!.displayName),
-                                      labelStyle: const TextStyle(fontSize: 11),
-                                      padding: EdgeInsets.zero,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                        ],
+                          child: Icon(
+                            Icons.paragliding_outlined,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Noch keine Sprünge erfasst',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Erfasse deinen ersten Sprung mit dem + Button',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ...jumps.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final jump = entry.value;
+                    return Container(
+                      margin: EdgeInsets.only(
+                        left: 16.0,
+                        right: 16.0,
+                        top: index == 0 ? 0 : 8.0,
+                        bottom: index == jumps.length - 1 ? 16.0 : 0,
                       ),
-                      trailing: PopupMenuButton(
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'edit',
+                      child: Card(
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: InkWell(
+                          onTap: () => _editJump(jump),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
                             child: Row(
                               children: [
-                                Icon(Icons.edit),
-                                SizedBox(width: 8),
-                                Text('Bearbeiten'),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.paragliding,
+                                    color: Theme.of(context).colorScheme.primary,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        jump.location,
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.calendar_today,
+                                            size: 14,
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            DateFormat('dd.MM.yyyy HH:mm').format(jump.date),
+                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.height,
+                                            size: 14,
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${jump.altitude} m',
+                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      if (jump.jumpType != null || jump.jumpMethod != null) ...[
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 6,
+                                          runSpacing: 6,
+                                          children: [
+                                            if (jump.jumpType != null)
+                                              InkWell(
+                                                onTap: () => _onJumpTypeFilterChanged(jump.jumpType),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: Theme.of(context).colorScheme.secondaryContainer,
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Text(
+                                                    jump.jumpType!.displayName,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w500,
+                                                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            if (jump.jumpMethod != null)
+                                              InkWell(
+                                                onTap: () => _onJumpMethodFilterChanged(jump.jumpMethod),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: Theme.of(context).colorScheme.tertiaryContainer,
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Text(
+                                                    jump.jumpMethod!.displayName,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w500,
+                                                      color: Theme.of(context).colorScheme.onTertiaryContainer,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuButton(
+                                  icon: Icon(
+                                    Icons.more_vert,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  itemBuilder: (context) => [
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.edit,
+                                            size: 20,
+                                            color: Theme.of(context).colorScheme.primary,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          const Text('Bearbeiten'),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.delete_outline,
+                                            size: 20,
+                                            color: Theme.of(context).colorScheme.error,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            'Löschen',
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.error,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  onSelected: (value) {
+                                    if (value == 'edit') {
+                                      _editJump(jump);
+                                    } else if (value == 'delete') {
+                                      _deleteJump(jump);
+                                    }
+                                  },
+                                ),
                               ],
                             ),
                           ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Löschen',
-                                    style: TextStyle(color: Colors.red)),
-                              ],
-                            ),
-                          ),
-                        ],
-                        onSelected: (value) {
-                          if (value == 'edit') {
-                            _editJump(jump);
-                          } else if (value == 'delete') {
-                            _deleteJump(jump);
-                          }
-                        },
+                        ),
                       ),
-                      onTap: () => _editJump(jump),
-                    ),
-                  );
-                }).toList(),
-              const SizedBox(height: 16),
+                    );
+                  }).toList(),
             ],
           ),
         );
