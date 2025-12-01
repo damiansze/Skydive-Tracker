@@ -562,16 +562,21 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         
         final isLastFilteredJump = filteredJumps.length == 1 && filteredJumps.first.id == jump.id;
         
-        // Delete the jump
+        // Delete the jump first
         await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
         
-        // If this was the last filtered jump, reset filters AFTER deletion
-        // CRITICAL: Reset ALL filter state and invalidate providers to ensure consistency
+        // CRITICAL: If this was the last filtered jump, reset filters AFTER deletion
+        // This ensures that the jump list reloads with all jumps (no filter)
         if (isLastFilteredJump && mounted) {
+          // Reset local filter state first
           setState(() {
             // Reset all filter variables COMPLETELY
             _resetAllFilters();
           });
+          
+          // Reset JumpNotifier's location filter and refresh to load all jumps
+          // This ensures the jump list shows all remaining jumps immediately
+          ref.read(jumpNotifierProvider.notifier).setLocationFilter(null);
           
           // Invalidate statistics providers to force recalculation with cleared filters
           // This ensures statistics and jump list are synchronized
@@ -677,10 +682,12 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
               // IMPORTANT: Set jumps to allJumps immediately for this render
               jumps = allJumps;
               
-              // CRITICAL: Invalidate statistics providers to force recalculation with cleared filters
+              // CRITICAL: Reset JumpNotifier's location filter and invalidate providers
               // This ensures statistics and jump list are synchronized
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
+                  // Reset JumpNotifier's location filter to ensure backend filter is cleared
+                  ref.read(jumpNotifierProvider.notifier).setLocationFilter(null);
                   ref.invalidate(totalJumpsProvider);
                   ref.invalidate(statisticsSummaryProvider);
                   ref.invalidate(distinctLocationsProvider);
