@@ -623,6 +623,27 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
           if (_selectedJumpMethodFilter != null) {
             jumps = jumps.where((j) => j.jumpMethod == _selectedJumpMethodFilter).toList();
           }
+          if (_selectedLocationFilter != null) {
+            jumps = jumps.where((j) => j.location == _selectedLocationFilter).toList();
+          }
+          
+          // If filtered list is empty but there are still jumps, reset filters immediately
+          if (jumps.isEmpty && allJumps.isNotEmpty) {
+            // Reset all filters immediately (not in postFrameCallback)
+            if (_selectedJumpTypeFilter != null || _selectedJumpMethodFilter != null || _selectedLocationFilter != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _selectedJumpTypeFilter = null;
+                    _selectedJumpMethodFilter = null;
+                    _selectedLocationFilter = null;
+                  });
+                }
+              });
+              // Re-filter with cleared filters for this render
+              jumps = allJumps;
+            }
+          }
           
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -1353,7 +1374,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                 ],
               
                 // Jumps List
-                if (jumps.isEmpty)
+                if (jumps.isEmpty && allJumps.isEmpty)
                   Padding(
                     padding: const EdgeInsets.all(48.0),
                     child: Column(

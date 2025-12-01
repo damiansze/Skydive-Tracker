@@ -70,6 +70,13 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     _selectedEquipmentIds = jump.equipmentIds.toSet();
     _freefallStats = jump.freefallStats;
     
+    // Debug: Print freefall stats when loading jump
+    if (_freefallStats != null && _freefallStats!.hasData) {
+      debugPrint('Loading jump with freefall stats: ${_freefallStats!.toMap()}');
+    } else {
+      debugPrint('Loading jump without freefall stats');
+    }
+    
     if (_latitude != null && _longitude != null) {
       _currentLocation = LatLng(_latitude!, _longitude!);
     }
@@ -312,6 +319,107 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
         );
       }
     }
+  }
+
+  Widget _buildFreefallStatsDisplay(FreefallStats stats) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.flight_takeoff,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Freefall-Statistiken',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'GESPEICHERT',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[900],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (stats.freefallDurationSeconds != null)
+              _buildStatRow(
+                'Freefall-Dauer',
+                '${stats.freefallDurationSeconds!.toStringAsFixed(1)} s',
+                Icons.timer,
+              ),
+            if (stats.freefallDurationSeconds != null && stats.maxVerticalVelocityMs != null)
+              const SizedBox(height: 8),
+            if (stats.maxVerticalVelocityMs != null)
+              _buildStatRow(
+                'Max. Geschwindigkeit',
+                '${stats.maxVerticalVelocityKmh!.toStringAsFixed(1)} km/h',
+                Icons.speed,
+              ),
+            if (stats.maxVerticalVelocityMs != null && stats.exitTime != null)
+              const SizedBox(height: 8),
+            if (stats.exitTime != null)
+              _buildStatRow(
+                'Exit-Zeit',
+                DateFormat('HH:mm:ss').format(stats.exitTime!),
+                Icons.flight_takeoff,
+              ),
+            if (stats.exitTime != null && stats.deploymentTime != null)
+              const SizedBox(height: 8),
+            if (stats.deploymentTime != null)
+              _buildStatRow(
+                'Deployment-Zeit',
+                DateFormat('HH:mm:ss').format(stats.deploymentTime!),
+                Icons.paragliding,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -646,7 +754,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
               ),
               const SizedBox(height: 16),
               
-              // Freefall Detection (only for new jumps)
+              // Freefall Detection (for new jumps) or Display (for existing jumps)
               if (widget.jump == null)
                 FreefallDetectionWidget(
                   onStatsUpdated: (stats) {
@@ -654,8 +762,10 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                       _freefallStats = stats;
                     });
                   },
-                ),
-              if (widget.jump == null) const SizedBox(height: 16),
+                )
+              else if (_freefallStats != null && _freefallStats!.hasData)
+                _buildFreefallStatsDisplay(_freefallStats!),
+              const SizedBox(height: 16),
               
               // Notes
               TextFormField(
