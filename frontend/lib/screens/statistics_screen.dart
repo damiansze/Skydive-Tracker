@@ -540,7 +540,28 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
 
     if (confirmed == true) {
       try {
+        // Check if this is the last jump matching current filters
+        final allJumps = ref.read(jumpNotifierProvider).value ?? [];
+        final filteredJumps = allJumps.where((j) {
+          if (_selectedJumpTypeFilter != null && j.jumpType != _selectedJumpTypeFilter) return false;
+          if (_selectedJumpMethodFilter != null && j.jumpMethod != _selectedJumpMethodFilter) return false;
+          if (_selectedLocationFilter != null && j.location != _selectedLocationFilter) return false;
+          return true;
+        }).toList();
+        
+        final isLastFilteredJump = filteredJumps.length == 1 && filteredJumps.first.id == jump.id;
+        
         await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
+        
+        // If this was the last filtered jump, reset filters immediately
+        if (isLastFilteredJump && mounted) {
+          setState(() {
+            _selectedJumpTypeFilter = null;
+            _selectedJumpMethodFilter = null;
+            _selectedLocationFilter = null;
+          });
+        }
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Sprung gelöscht')),
@@ -629,8 +650,10 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
           
           // If filtered list is empty but there are still jumps, reset filters immediately
           if (jumps.isEmpty && allJumps.isNotEmpty) {
-            // Reset all filters immediately (not in postFrameCallback)
+            // Check if any filters are active
             if (_selectedJumpTypeFilter != null || _selectedJumpMethodFilter != null || _selectedLocationFilter != null) {
+              // Reset filters immediately for this render cycle
+              // Use a flag to trigger setState after build completes
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
                   setState(() {
@@ -640,7 +663,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                   });
                 }
               });
-              // Re-filter with cleared filters for this render
+              // Show all jumps for this render (before filters are reset)
               jumps = allJumps;
             }
           }

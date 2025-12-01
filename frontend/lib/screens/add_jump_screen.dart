@@ -42,14 +42,17 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   List<String> _locationSuggestions = [];
   bool _showSuggestions = false;
   FreefallStats? _freefallStats;
+  bool _isEditingMode = false; // For existing jumps: start in preview mode
 
   @override
   void initState() {
     super.initState();
     if (widget.jump != null) {
       _loadJumpData();
+      _isEditingMode = false; // Start in preview mode for existing jumps
     } else {
       _getCurrentLocation();
+      _isEditingMode = true; // Always editable for new jumps
     }
     
     // Listen to location field changes for geocoding
@@ -437,7 +440,22 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.jump != null ? 'Sprung bearbeiten' : 'Neuer Sprung'),
+        title: Text(widget.jump != null 
+            ? (_isEditingMode ? 'Sprung bearbeiten' : 'Sprung-Details')
+            : 'Neuer Sprung'),
+        actions: widget.jump != null && !_isEditingMode
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  tooltip: 'Editieren',
+                  onPressed: () {
+                    setState(() {
+                      _isEditingMode = true;
+                    });
+                  },
+                ),
+              ]
+            : null,
       ),
       body: Form(
         key: _formKey,
@@ -451,8 +469,8 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                   leading: const Icon(Icons.calendar_today),
                   title: const Text('Datum'),
                   subtitle: Text(DateFormat('dd.MM.yyyy').format(_selectedDate)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: _selectDate,
+                  trailing: _isEditingMode ? const Icon(Icons.chevron_right) : null,
+                  onTap: _isEditingMode ? _selectDate : null,
                 ),
               ),
               const SizedBox(height: 8),
@@ -461,8 +479,8 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                   leading: const Icon(Icons.access_time),
                   title: const Text('Uhrzeit'),
                   subtitle: Text(_selectedTime.format(context)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: _selectTime,
+                  trailing: _isEditingMode ? const Icon(Icons.chevron_right) : null,
+                  onTap: _isEditingMode ? _selectTime : null,
                 ),
               ),
               const SizedBox(height: 16),
@@ -473,11 +491,12 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                 children: [
                   TextFormField(
                     controller: _locationController,
+                    readOnly: !_isEditingMode,
                     decoration: InputDecoration(
                       labelText: 'Ort *',
                       border: const OutlineInputBorder(),
                       prefixIcon: const Icon(Icons.location_on),
-                      suffixIcon: _isGeocoding
+                      suffixIcon: _isGeocoding && _isEditingMode
                           ? const SizedBox(
                               width: 20,
                               height: 20,
@@ -488,30 +507,30 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                             )
                           : null,
                     ),
-                    validator: (value) {
+                    validator: _isEditingMode ? (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Bitte geben Sie einen Ort ein';
                       }
                       return null;
-                    },
-                    onTap: () {
+                    } : null,
+                    onTap: _isEditingMode ? () {
                       setState(() {
                         if (_locationController.text.length >= 3) {
                           _showSuggestions = _locationSuggestions.isNotEmpty;
                         }
                       });
-                    },
-                    onChanged: (value) {
+                    } : null,
+                    onChanged: _isEditingMode ? (value) {
                       _onLocationChanged();
-                    },
-                    onTapOutside: (event) {
+                    } : null,
+                    onTapOutside: _isEditingMode ? (event) {
                       // Hide suggestions when tapping outside
                       setState(() {
                         _showSuggestions = false;
                       });
-                    },
+                    } : null,
                   ),
-                  if (_showSuggestions && _locationSuggestions.isNotEmpty)
+                  if (_showSuggestions && _locationSuggestions.isNotEmpty && _isEditingMode)
                     Container(
                       margin: const EdgeInsets.only(top: 4),
                       decoration: BoxDecoration(
@@ -553,7 +572,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
               // Map Selection Button
               Card(
                 child: InkWell(
-                  onTap: _openMapPicker,
+                  onTap: _isEditingMode ? _openMapPicker : null,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Row(
@@ -587,7 +606,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                             ],
                           ),
                         ),
-                        const Icon(Icons.chevron_right),
+                        if (_isEditingMode) const Icon(Icons.chevron_right),
                       ],
                     ),
                   ),
@@ -609,11 +628,11 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                     child: Text(type.displayName),
                   );
                 }).toList(),
-                onChanged: (value) {
+                onChanged: _isEditingMode ? (value) {
                   setState(() {
                     _selectedJumpType = value;
                   });
-                },
+                } : null,
               ),
               const SizedBox(height: 16),
               
@@ -631,24 +650,25 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                     child: Text(method.displayName),
                   );
                 }).toList(),
-                onChanged: (value) {
+                onChanged: _isEditingMode ? (value) {
                   setState(() {
                     _selectedJumpMethod = value;
                   });
-                },
+                } : null,
               ),
               const SizedBox(height: 16),
               
               // Altitude
               TextFormField(
                 controller: _altitudeController,
+                readOnly: !_isEditingMode,
                 decoration: const InputDecoration(
                   labelText: 'Höhe (m) *',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.height),
                 ),
                 keyboardType: TextInputType.number,
-                validator: (value) {
+                validator: _isEditingMode ? (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Bitte geben Sie eine Höhe ein';
                   }
@@ -656,7 +676,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                     return 'Bitte geben Sie eine gültige Höhe ein';
                   }
                   return null;
-                },
+                } : null,
               ),
               const SizedBox(height: 16),
               
@@ -741,8 +761,8 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                             ],
                           ),
                           value: _checklistItems[eq.id] ?? false,
-                          onChanged: (value) => _toggleEquipment(eq.id),
-                          enabled: isAvailableAtJumpDate || _selectedEquipmentIds.contains(eq.id),
+                          onChanged: _isEditingMode ? (value) => _toggleEquipment(eq.id) : null,
+                          enabled: _isEditingMode && (isAvailableAtJumpDate || _selectedEquipmentIds.contains(eq.id)),
                         );
                       }),
                       const SizedBox(height: 16),
@@ -770,6 +790,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
               // Notes
               TextFormField(
                 controller: _notesController,
+                readOnly: !_isEditingMode,
                 decoration: const InputDecoration(
                   labelText: 'Notizen',
                   border: OutlineInputBorder(),
@@ -777,16 +798,18 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                 ),
                 maxLines: 3,
               ),
-              const SizedBox(height: 24),
-              
-              // Save Button
-              ElevatedButton(
-                onPressed: _saveJump,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+              if (_isEditingMode) ...[
+                const SizedBox(height: 24),
+                
+                // Save Button (only in editing mode)
+                ElevatedButton(
+                  onPressed: _saveJump,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text(widget.jump != null ? 'Änderungen speichern' : 'Sprung speichern'),
                 ),
-                child: Text(widget.jump != null ? 'Änderungen speichern' : 'Sprung speichern'),
-              ),
+              ],
             ],
           ),
         ),
