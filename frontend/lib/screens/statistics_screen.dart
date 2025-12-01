@@ -551,18 +551,22 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         
         final isLastFilteredJump = filteredJumps.length == 1 && filteredJumps.first.id == jump.id;
         
-        // If this is the last filtered jump, reset filters IMMEDIATELY before deletion
-        // This ensures the UI will show all remaining jumps after deletion
+        // Delete the jump first - this will trigger a rebuild with updated data
+        await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
+        
+        // If this was the last filtered jump, reset filters AFTER deletion
+        // This ensures the UI will show all remaining jumps
         if (isLastFilteredJump && mounted) {
+          // Reset filters immediately
           setState(() {
             _selectedJumpTypeFilter = null;
             _selectedJumpMethodFilter = null;
             _selectedLocationFilter = null;
           });
+          
+          // Force a refresh of the jump list to ensure fresh data
+          ref.read(jumpNotifierProvider.notifier).refresh();
         }
-        
-        // Delete the jump - this will trigger a rebuild with updated data
-        await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -680,8 +684,22 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
           
           // CRITICAL: Ensure jumps is never empty when allJumps is not empty
           // This prevents the "Noch keine Sprünge erfasst" message from showing incorrectly
+          // This is a final safety check to ensure the UI always shows jumps when they exist
           if (jumps.isEmpty && allJumps.isNotEmpty) {
+            // Force show all jumps if filtered list is empty but jumps exist
             jumps = allJumps;
+            // Also ensure filters are cleared
+            if (_selectedJumpTypeFilter != null || _selectedJumpMethodFilter != null || _selectedLocationFilter != null) {
+              _selectedJumpTypeFilter = null;
+              _selectedJumpMethodFilter = null;
+              _selectedLocationFilter = null;
+              // Trigger rebuild to reflect cleared filters
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {});
+                }
+              });
+            }
           }
           
           return SingleChildScrollView(

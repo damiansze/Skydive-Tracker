@@ -145,6 +145,11 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   Timer? _locationDebounceTimer;
   
   Future<void> _onLocationChanged() async {
+    // Don't show suggestions if user is currently selecting one
+    if (_isSelectingSuggestion) {
+      return;
+    }
+    
     final locationText = _locationController.text.trim();
     
     // Cancel previous timer
@@ -163,7 +168,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     
     // Debounce suggestions to avoid too many API calls
     _locationDebounceTimer = Timer(const Duration(milliseconds: 500), () async {
-      if (!mounted) return;
+      if (!mounted || _isSelectingSuggestion) return;
       
       // Check if text hasn't changed
       if (_locationController.text.trim() != locationText) return;
@@ -171,7 +176,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
       // Get suggestions for autocomplete (only show, don't auto-select)
       try {
         final suggestions = await GeocodingService.getAddressSuggestions(locationText);
-        if (mounted && _locationController.text.trim() == locationText) {
+        if (mounted && !_isSelectingSuggestion && _locationController.text.trim() == locationText) {
           setState(() {
             _locationSuggestions = suggestions;
             _showSuggestions = suggestions.isNotEmpty;
@@ -190,13 +195,21 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     // Mark that we're selecting a suggestion to prevent onTapOutside from hiding it
     _isSelectingSuggestion = true;
     
-    // Cancel any pending debounce timer
+    // Cancel any pending debounce timer to prevent suggestions from reappearing
     _locationDebounceTimer?.cancel();
     
     // Update the text field immediately
+    // Remove listener temporarily to prevent _onLocationChanged from triggering
+    _locationController.removeListener(_onLocationChanged);
     _locationController.text = suggestion;
+    // Re-add listener after a short delay
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _locationController.addListener(_onLocationChanged);
+      }
+    });
     
-    // Hide suggestions and clear list
+    // Hide suggestions and clear list IMMEDIATELY
     setState(() {
       _showSuggestions = false;
       _locationSuggestions = [];
@@ -206,8 +219,10 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     _locationFocusNode.unfocus();
     
     // Reset the flag after a short delay
-    Future.delayed(const Duration(milliseconds: 100), () {
-      _isSelectingSuggestion = false;
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _isSelectingSuggestion = false;
+      }
     });
     
     // Geocode the selected suggestion
