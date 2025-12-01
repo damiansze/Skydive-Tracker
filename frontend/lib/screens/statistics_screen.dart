@@ -557,15 +557,19 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         // If this was the last filtered jump, reset filters AFTER deletion
         // This ensures the UI will show all remaining jumps
         if (isLastFilteredJump && mounted) {
-          // Reset filters immediately
+          // Reset filters immediately - this will cause build() to recalculate jumps list
           setState(() {
             _selectedJumpTypeFilter = null;
             _selectedJumpMethodFilter = null;
             _selectedLocationFilter = null;
+            _cachedFilters = null; // Reset cache to ensure statistics use cleared filters
           });
           
-          // Force a refresh of the jump list to ensure fresh data
-          ref.read(jumpNotifierProvider.notifier).refresh();
+          // Invalidate providers to ensure statistics are updated with cleared filters
+          // This ensures consistency between statistics and jump list
+          ref.invalidate(distinctLocationsProvider);
+          ref.invalidate(totalJumpsProvider);
+          ref.invalidate(statisticsSummaryProvider);
         }
         
         if (mounted) {
@@ -616,9 +620,37 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       ),
       body: jumpsAsync.when(
         data: (allJumps) {
-          // First, check and reset filters if selected values are no longer available
+          // CRITICAL: First check if filtered list would be empty but jumps exist
+          // This handles the case when the last filtered jump is deleted
+          // We must reset filters BEFORE calculating the jumps list
           bool filtersChanged = false;
           
+          // Calculate what the filtered list would be with current filters
+          List<Jump> testJumps = allJumps;
+          if (_selectedJumpTypeFilter != null) {
+            testJumps = testJumps.where((j) => j.jumpType == _selectedJumpTypeFilter).toList();
+          }
+          if (_selectedJumpMethodFilter != null) {
+            testJumps = testJumps.where((j) => j.jumpMethod == _selectedJumpMethodFilter).toList();
+          }
+          if (_selectedLocationFilter != null) {
+            testJumps = testJumps.where((j) => j.location == _selectedLocationFilter).toList();
+          }
+          
+          // If filtered list is empty but there are still jumps, reset all filters IMMEDIATELY
+          // This must happen BEFORE we calculate the final jumps list
+          if (testJumps.isEmpty && allJumps.isNotEmpty) {
+            // Check if any filters are active
+            if (_selectedJumpTypeFilter != null || _selectedJumpMethodFilter != null || _selectedLocationFilter != null) {
+              // Reset filters immediately for this render cycle
+              _selectedJumpTypeFilter = null;
+              _selectedJumpMethodFilter = null;
+              _selectedLocationFilter = null;
+              filtersChanged = true;
+            }
+          }
+          
+          // Now check and reset filters if selected values are no longer available
           if (_selectedJumpTypeFilter != null) {
             final hasJumpType = allJumps.any((j) => j.jumpType == _selectedJumpTypeFilter);
             if (!hasJumpType) {
@@ -641,7 +673,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             }
           }
           
-          // Filter jumps based on selected filters
+          // NOW filter jumps based on selected filters (which may have been reset above)
           List<Jump> jumps = allJumps;
           if (_selectedJumpTypeFilter != null) {
             jumps = jumps.where((j) => j.jumpType == _selectedJumpTypeFilter).toList();
@@ -653,19 +685,17 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             jumps = jumps.where((j) => j.location == _selectedLocationFilter).toList();
           }
           
-          // If filtered list is empty but there are still jumps, reset all filters immediately
-          // This handles the case when the last filtered jump is deleted
+          // FINAL SAFETY CHECK: Ensure jumps is never empty when allJumps is not empty
+          // This prevents the "Noch keine Sprünge erfasst" message from showing incorrectly
           if (jumps.isEmpty && allJumps.isNotEmpty) {
-            // Check if any filters are active
+            // Force show all jumps if filtered list is empty but jumps exist
+            jumps = allJumps;
+            // Also ensure filters are cleared
             if (_selectedJumpTypeFilter != null || _selectedJumpMethodFilter != null || _selectedLocationFilter != null) {
-              // Reset filters immediately for this render cycle
               _selectedJumpTypeFilter = null;
               _selectedJumpMethodFilter = null;
               _selectedLocationFilter = null;
               filtersChanged = true;
-              // IMPORTANT: Show all jumps for this render cycle immediately
-              // This prevents showing "Noch keine Sprünge erfasst" message
-              jumps = allJumps;
             }
           }
           
@@ -680,26 +710,6 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                 });
               }
             });
-          }
-          
-          // CRITICAL: Ensure jumps is never empty when allJumps is not empty
-          // This prevents the "Noch keine Sprünge erfasst" message from showing incorrectly
-          // This is a final safety check to ensure the UI always shows jumps when they exist
-          if (jumps.isEmpty && allJumps.isNotEmpty) {
-            // Force show all jumps if filtered list is empty but jumps exist
-            jumps = allJumps;
-            // Also ensure filters are cleared
-            if (_selectedJumpTypeFilter != null || _selectedJumpMethodFilter != null || _selectedLocationFilter != null) {
-              _selectedJumpTypeFilter = null;
-              _selectedJumpMethodFilter = null;
-              _selectedLocationFilter = null;
-              // Trigger rebuild to reflect cleared filters
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() {});
-                }
-              });
-            }
           }
           
           return SingleChildScrollView(
