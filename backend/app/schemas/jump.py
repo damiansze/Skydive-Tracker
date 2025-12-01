@@ -67,18 +67,29 @@ class JumpResponse(JumpBase):
                 data['equipment_ids'] = obj.equipment_ids
             
             # Format freefall_stats from model attributes
+            # Check if ANY freefall field exists, not just if all exist
             freefall_data = {}
+            has_any_freefall_data = False
+            
             if hasattr(obj, 'freefall_duration_seconds') and obj.freefall_duration_seconds is not None:
                 freefall_data['freefall_duration_seconds'] = obj.freefall_duration_seconds
+                has_any_freefall_data = True
             if hasattr(obj, 'max_vertical_velocity_ms') and obj.max_vertical_velocity_ms is not None:
                 freefall_data['max_vertical_velocity_ms'] = obj.max_vertical_velocity_ms
+                has_any_freefall_data = True
             if hasattr(obj, 'exit_time') and obj.exit_time is not None:
                 freefall_data['exit_time'] = obj.exit_time.isoformat() if isinstance(obj.exit_time, datetime) else obj.exit_time
+                has_any_freefall_data = True
             if hasattr(obj, 'deployment_time') and obj.deployment_time is not None:
                 freefall_data['deployment_time'] = obj.deployment_time.isoformat() if isinstance(obj.deployment_time, datetime) else obj.deployment_time
+                has_any_freefall_data = True
             
-            if freefall_data:
+            # Always include freefall_stats if any data exists, even if empty dict
+            if has_any_freefall_data:
                 data['freefall_stats'] = freefall_data
+            else:
+                # Explicitly set to None if no data exists
+                data['freefall_stats'] = None
             
             return super().model_validate(data, **kwargs)
         return super().model_validate(obj, **kwargs)
@@ -90,22 +101,33 @@ class JumpResponse(JumpBase):
         data.pop("checklist_completed", None)
         
         # Ensure freefall_stats is properly formatted
+        # If freefall_stats is already in data and is a dict, keep it
+        # Otherwise, try to reconstruct from model attributes
         if "freefall_stats" not in data or data["freefall_stats"] is None:
             # Try to get from model attributes if this is a model instance
             if hasattr(self, '__dict__'):
                 model_dict = self.__dict__
                 freefall_data = {}
+                has_any_data = False
+                
                 if 'freefall_duration_seconds' in model_dict and model_dict['freefall_duration_seconds'] is not None:
                     freefall_data['freefall_duration_seconds'] = model_dict['freefall_duration_seconds']
+                    has_any_data = True
                 if 'max_vertical_velocity_ms' in model_dict and model_dict['max_vertical_velocity_ms'] is not None:
                     freefall_data['max_vertical_velocity_ms'] = model_dict['max_vertical_velocity_ms']
+                    has_any_data = True
                 if 'exit_time' in model_dict and model_dict['exit_time'] is not None:
                     exit_time = model_dict['exit_time']
                     freefall_data['exit_time'] = exit_time.isoformat() if isinstance(exit_time, datetime) else exit_time
+                    has_any_data = True
                 if 'deployment_time' in model_dict and model_dict['deployment_time'] is not None:
                     deployment_time = model_dict['deployment_time']
                     freefall_data['deployment_time'] = deployment_time.isoformat() if isinstance(deployment_time, datetime) else deployment_time
-                if freefall_data:
+                    has_any_data = True
+                
+                if has_any_data:
                     data['freefall_stats'] = freefall_data
+                else:
+                    data['freefall_stats'] = None
         
         return data

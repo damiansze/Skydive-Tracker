@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'freefall_stats.dart';
 
 enum JumpType {
@@ -98,7 +99,33 @@ class Jump {
     };
   }
 
+  static FreefallStats? _parseFreefallStats(dynamic freefallStatsData) {
+    if (freefallStatsData == null) {
+      return null;
+    }
+    
+    // Handle different formats: Map, dict, or already parsed
+    Map<String, dynamic>? freefallMap;
+    if (freefallStatsData is Map<String, dynamic>) {
+      freefallMap = freefallStatsData;
+    } else if (freefallStatsData is Map) {
+      // Convert Map<dynamic, dynamic> to Map<String, dynamic>
+      freefallMap = Map<String, dynamic>.from(freefallStatsData);
+    } else {
+      return null;
+    }
+    
+    // Debug logging
+    debugPrint('Parsing freefall_stats: $freefallMap');
+    
+    return FreefallStats.fromMap(freefallMap);
+  }
+
   factory Jump.fromMap(Map<String, dynamic> map) {
+    // Debug: Print freefall_stats from backend
+    debugPrint('Jump.fromMap - freefall_stats raw: ${map['freefall_stats']}');
+    debugPrint('Jump.fromMap - freefall_stats type: ${map['freefall_stats'].runtimeType}');
+    
     // Handle equipment_ids from backend
     List<String> equipmentIds = [];
     if (map['equipment_ids'] != null) {
@@ -131,6 +158,13 @@ class Jump {
       }
     }
     
+    final freefallStats = _parseFreefallStats(map['freefall_stats']);
+    if (freefallStats != null && freefallStats.hasData) {
+      debugPrint('Jump.fromMap - Successfully parsed freefall_stats: ${freefallStats.toMap()}');
+    } else {
+      debugPrint('Jump.fromMap - No freefall_stats parsed');
+    }
+    
     return Jump(
       id: map['id'] as String,
       date: DateTime.parse(map['date'] as String),
@@ -143,9 +177,7 @@ class Jump {
       equipmentIds: equipmentIds,
       notes: map['notes'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
-      freefallStats: map['freefall_stats'] != null
-          ? FreefallStats.fromMap(map['freefall_stats'] as Map<String, dynamic>?)
-          : null,
+      freefallStats: freefallStats,
     );
   }
 

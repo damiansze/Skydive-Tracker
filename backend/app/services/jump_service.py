@@ -53,6 +53,14 @@ class JumpService:
             jump.max_vertical_velocity_ms = jump_data.freefall_stats.max_vertical_velocity_ms
             jump.exit_time = jump_data.freefall_stats.exit_time
             jump.deployment_time = jump_data.freefall_stats.deployment_time
+            logger.info(
+                "Freefall stats set on jump",
+                extra={
+                    "jump_id": jump.id,
+                    "duration": jump.freefall_duration_seconds,
+                    "max_velocity": jump.max_vertical_velocity_ms,
+                }
+            )
         
         # Add equipment associations
         if jump_data.equipment_ids:
@@ -94,11 +102,31 @@ class JumpService:
         # Handle freefall_stats update separately
         if "freefall_stats" in update_data:
             freefall_stats = update_data.pop("freefall_stats")
-            if freefall_stats:
+            if freefall_stats and isinstance(freefall_stats, dict):
+                # Update freefall stats fields
                 jump.freefall_duration_seconds = freefall_stats.get("freefall_duration_seconds")
                 jump.max_vertical_velocity_ms = freefall_stats.get("max_vertical_velocity_ms")
-                jump.exit_time = freefall_stats.get("exit_time")
-                jump.deployment_time = freefall_stats.get("deployment_time")
+                # Handle datetime strings
+                exit_time = freefall_stats.get("exit_time")
+                if exit_time:
+                    if isinstance(exit_time, str):
+                        from datetime import datetime
+                        jump.exit_time = datetime.fromisoformat(exit_time.replace('Z', '+00:00'))
+                    else:
+                        jump.exit_time = exit_time
+                deployment_time = freefall_stats.get("deployment_time")
+                if deployment_time:
+                    if isinstance(deployment_time, str):
+                        from datetime import datetime
+                        jump.deployment_time = datetime.fromisoformat(deployment_time.replace('Z', '+00:00'))
+                    else:
+                        jump.deployment_time = deployment_time
+            elif freefall_stats is None:
+                # Explicitly clear freefall stats if None is provided
+                jump.freefall_duration_seconds = None
+                jump.max_vertical_velocity_ms = None
+                jump.exit_time = None
+                jump.deployment_time = None
         
         # Handle equipment update separately
         if "equipment_ids" in update_data:
