@@ -28,6 +28,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   final _locationController = TextEditingController();
   final _altitudeController = TextEditingController();
   final _notesController = TextEditingController();
+  final _locationFocusNode = FocusNode(); // Focus node for location field
   
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
@@ -44,6 +45,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   bool _showSuggestions = false;
   FreefallStats? _freefallStats;
   bool _isEditingMode = false; // For existing jumps: start in preview mode
+  bool _isSelectingSuggestion = false; // Track if user is selecting a suggestion
 
   bool _isInitializing = true; // Track if we're still initializing
   
@@ -185,11 +187,29 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   }
   
   void _selectLocationSuggestion(String suggestion) {
+    // Mark that we're selecting a suggestion to prevent onTapOutside from hiding it
+    _isSelectingSuggestion = true;
+    
+    // Cancel any pending debounce timer
+    _locationDebounceTimer?.cancel();
+    
+    // Update the text field immediately
+    _locationController.text = suggestion;
+    
+    // Hide suggestions and clear list
     setState(() {
-      _locationController.text = suggestion;
       _showSuggestions = false;
       _locationSuggestions = [];
     });
+    
+    // Unfocus the text field to dismiss keyboard
+    _locationFocusNode.unfocus();
+    
+    // Reset the flag after a short delay
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _isSelectingSuggestion = false;
+    });
+    
     // Geocode the selected suggestion
     _geocodeLocation(suggestion);
   }
@@ -470,6 +490,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     _locationController.dispose();
     _altitudeController.dispose();
     _notesController.dispose();
+    _locationFocusNode.dispose();
     super.dispose();
   }
 
@@ -530,6 +551,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                 children: [
                   TextFormField(
                     controller: _locationController,
+                    focusNode: _locationFocusNode,
                     readOnly: !_isEditingMode,
                     decoration: InputDecoration(
                       labelText: 'Ort *',
@@ -563,45 +585,55 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                       _onLocationChanged();
                     } : null,
                     onTapOutside: _isEditingMode ? (event) {
-                      // Hide suggestions when tapping outside
-                      setState(() {
-                        _showSuggestions = false;
-                      });
+                      // Only hide suggestions if user is not selecting a suggestion
+                      if (!_isSelectingSuggestion) {
+                        setState(() {
+                          _showSuggestions = false;
+                        });
+                      }
                     } : null,
                   ),
                   if (_showSuggestions && _locationSuggestions.isNotEmpty && _isEditingMode)
-                    Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      constraints: const BoxConstraints(maxHeight: 200),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: _locationSuggestions.length,
-                        itemBuilder: (context, index) {
-                          final suggestion = _locationSuggestions[index];
-                          return ListTile(
-                            dense: true,
-                            leading: const Icon(Icons.location_on, size: 20),
-                            title: Text(
-                              suggestion,
-                              style: const TextStyle(fontSize: 14),
+                    GestureDetector(
+                      // Prevent tap events from propagating to onTapOutside
+                      onTap: () {
+                        // Do nothing, just prevent tap from propagating
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
                             ),
-                            onTap: () {
-                              _selectLocationSuggestion(suggestion);
-                            },
-                          );
-                        },
+                          ],
+                        ),
+                        constraints: const BoxConstraints(maxHeight: 200),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: _locationSuggestions.length,
+                          itemBuilder: (context, index) {
+                            final suggestion = _locationSuggestions[index];
+                            return InkWell(
+                              onTap: () {
+                                _selectLocationSuggestion(suggestion);
+                              },
+                              child: ListTile(
+                                dense: true,
+                                leading: const Icon(Icons.location_on, size: 20),
+                                title: Text(
+                                  suggestion,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
                 ],

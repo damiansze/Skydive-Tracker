@@ -551,23 +551,18 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         
         final isLastFilteredJump = filteredJumps.length == 1 && filteredJumps.first.id == jump.id;
         
-        // Delete the jump first
-        await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
-        
-        // Reset filters AFTER deletion if this was the last filtered jump
-        // This ensures the UI rebuilds with all remaining jumps
+        // If this is the last filtered jump, reset filters IMMEDIATELY before deletion
+        // This ensures the UI will show all remaining jumps after deletion
         if (isLastFilteredJump && mounted) {
-          // Wait for the provider to update, then reset filters
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              setState(() {
-                _selectedJumpTypeFilter = null;
-                _selectedJumpMethodFilter = null;
-                _selectedLocationFilter = null;
-              });
-            }
+          setState(() {
+            _selectedJumpTypeFilter = null;
+            _selectedJumpMethodFilter = null;
+            _selectedLocationFilter = null;
           });
         }
+        
+        // Delete the jump - this will trigger a rebuild with updated data
+        await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -664,7 +659,8 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
               _selectedJumpMethodFilter = null;
               _selectedLocationFilter = null;
               filtersChanged = true;
-              // Show all jumps for this render (before setState triggers rebuild)
+              // IMPORTANT: Show all jumps for this render cycle immediately
+              // This prevents showing "Noch keine Sprünge erfasst" message
               jumps = allJumps;
             }
           }
@@ -680,6 +676,12 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                 });
               }
             });
+          }
+          
+          // CRITICAL: Ensure jumps is never empty when allJumps is not empty
+          // This prevents the "Noch keine Sprünge erfasst" message from showing incorrectly
+          if (jumps.isEmpty && allJumps.isNotEmpty) {
+            jumps = allJumps;
           }
           
           return SingleChildScrollView(
