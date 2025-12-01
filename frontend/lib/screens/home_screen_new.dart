@@ -5,6 +5,7 @@ import '../providers/profile_provider.dart';
 import '../providers/achievement_provider.dart';
 import '../models/achievement.dart';
 import '../config/api_config.dart';
+import 'settings_screen.dart';
 
 class HomeScreenNew extends ConsumerWidget {
   const HomeScreenNew({super.key});
@@ -15,6 +16,23 @@ class HomeScreenNew extends ConsumerWidget {
     final achievementsAsync = ref.watch(achievementProvider);
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Lizenz & Achievements'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Einstellungen',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.read(profileNotifierProvider.notifier).refresh();

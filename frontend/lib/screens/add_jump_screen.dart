@@ -10,7 +10,6 @@ import '../providers/equipment_provider.dart';
 import '../services/geocoding_service.dart';
 import 'map_location_picker_screen.dart';
 import 'settings_screen.dart';
-import 'statistics_screen.dart';
 
 class AddJumpScreen extends ConsumerStatefulWidget {
   final Jump? jump; // For editing existing jumps

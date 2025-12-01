@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-import '../models/profile.dart';
 import '../providers/profile_provider.dart';
-import '../services/api_service.dart';
 import '../providers/database_provider.dart';
 import 'profile_screen.dart';
 
@@ -120,7 +117,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
     final metric = ref.watch(metricProvider);
-    final profileAsync = ref.watch(profileNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(

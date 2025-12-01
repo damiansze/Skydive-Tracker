@@ -7,6 +7,7 @@ import '../models/jump.dart';
 import '../providers/jump_provider.dart';
 import '../providers/database_provider.dart';
 import 'add_jump_screen.dart';
+import 'settings_screen.dart';
 
 final distinctLocationsProvider = FutureProvider<List<String>>((ref) async {
   final service = ref.read(jumpServiceProvider);
@@ -316,6 +317,18 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
               tooltip: 'Alle Filter zurücksetzen',
               onPressed: _clearAllFilters,
             ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Einstellungen',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+          ),
         ],
       ),
       body: jumpsAsync.when(
