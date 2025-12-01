@@ -1271,7 +1271,8 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                               }),
                             ],
                             onChanged: _onLocationFilterChanged,
-                          ),
+                            );
+                          },
                           loading: () => Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(

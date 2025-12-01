@@ -85,13 +85,16 @@ class FreefallDetectionService {
     _magnetometerSubscription = null;
 
     // Calculate final stats if we have exit time and haven't already calculated them
-    if (_exitTime != null && _deploymentTime == null) {
-      // If deployment wasn't detected, use current time as end time
-      _deploymentTime = DateTime.now();
-      _calculateFinalStats();
-    } else if (_exitTime != null && _currentStats == null) {
-      // If we have exit time but no stats yet, calculate them
-      _calculateFinalStats();
+    // Only calculate if stream is still open (not already closed by automatic stop)
+    if (_exitTime != null && !_statsController.isClosed) {
+      if (_deploymentTime == null) {
+        // If deployment wasn't detected, use current time as end time
+        _deploymentTime = DateTime.now();
+      }
+      // Only calculate if we don't have stats yet or if deployment was just set
+      if (_currentStats == null || (_deploymentTime != null && _currentStats!.deploymentTime == null)) {
+        _calculateFinalStats();
+      }
     }
   }
   
@@ -370,8 +373,15 @@ class FreefallDetectionService {
         _deploymentTime = now;
         _inFreefall = false;
         print('Simulated deployment detected at ${elapsed}s (${timeSinceExit.toStringAsFixed(1)}s freefall)');
-        _isDetecting = false; // Stop detection first
-        _calculateFinalStats(); // Calculate final stats (will check if stream is closed)
+        
+        // Stop detection first
+        _isDetecting = false;
+        
+        // Calculate final stats before stopping timer
+        // This ensures stats are sent through the stream before it might be closed
+        _calculateFinalStats();
+        
+        // Cancel timer after stats are calculated
         timer.cancel();
         _simulationTimer = null;
         return;
