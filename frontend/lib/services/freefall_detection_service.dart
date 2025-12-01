@@ -5,7 +5,9 @@ import '../models/freefall_stats.dart';
 
 /// Service for detecting freefall using device sensors
 class FreefallDetectionService {
-  static const bool useSimulatedSensors = bool.fromEnvironment('USE_SIMULATED_SENSORS', defaultValue: false);
+  // For testing: Set to true to always use simulation, or use environment variable
+  static const bool _forceSimulation = true; // Set to false for production
+  static const bool useSimulatedSensors = _forceSimulation || bool.fromEnvironment('USE_SIMULATED_SENSORS', defaultValue: false);
   
   // Detection thresholds
   static const double exitAccelerationThreshold = 2.0; // m/s² - sudden acceleration change
@@ -20,6 +22,7 @@ class FreefallDetectionService {
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
   StreamSubscription<GyroscopeEvent>? _gyroscopeSubscription;
   StreamSubscription<MagnetometerEvent>? _magnetometerSubscription;
+  Timer? _simulationTimer;
   
   DateTime? _exitTime;
   DateTime? _deploymentTime;
@@ -55,6 +58,12 @@ class FreefallDetectionService {
   /// Stop freefall detection
   Future<void> stopDetection() async {
     _isDetecting = false;
+    
+    // Stop simulation timer
+    _simulationTimer?.cancel();
+    _simulationTimer = null;
+    
+    // Stop sensor subscriptions
     await _accelerometerSubscription?.cancel();
     await _gyroscopeSubscription?.cancel();
     await _magnetometerSubscription?.cancel();
@@ -258,9 +267,11 @@ class FreefallDetectionService {
   
   // Simulated detection for testing
   void _startSimulatedDetection() {
-    Timer.periodic(sensorUpdateInterval, (timer) {
+    _simulationTimer?.cancel(); // Cancel any existing timer
+    _simulationTimer = Timer.periodic(sensorUpdateInterval, (timer) {
       if (!_isDetecting) {
         timer.cancel();
+        _simulationTimer = null;
         return;
       }
       
@@ -303,28 +314,36 @@ class FreefallDetectionService {
         _readings.removeAt(0);
       }
       
-      // Auto-detect exit at start
-      if (_exitTime == null && elapsed > 0.5) {
-        _exitTime = now.subtract(Duration(milliseconds: (elapsed * 1000).round()));
+      // Auto-detect exit after 2 seconds (simulating waiting in aircraft, then exit)
+      if (_exitTime == null && elapsed >= 2.0) {
+        _exitTime = now.subtract(Duration(milliseconds: ((elapsed - 2.0) * 1000).round()));
         _inFreefall = true;
-        print('Simulated exit detected');
+        print('Simulated exit detected at ${elapsed}s');
       }
       
-      // Auto-detect deployment after 50 seconds
-      if (_inFreefall && _deploymentTime == null && elapsed > 50.0) {
+      // Auto-detect deployment after 50 seconds of freefall (52 seconds total)
+      if (_inFreefall && _deploymentTime == null && elapsed >= 52.0) {
         _deploymentTime = now;
         _inFreefall = false;
-        print('Simulated deployment detected');
+        print('Simulated deployment detected at ${elapsed}s');
         _calculateFinalStats();
         timer.cancel();
+        _simulationTimer = null;
+        return;
       }
       
-      // Update max velocity
-      if (velocity > _maxVerticalVelocity) {
+      // Update max velocity during freefall
+      if (_inFreefall && velocity > _maxVerticalVelocity) {
         _maxVerticalVelocity = velocity;
       }
       
-      _updateCurrentStats();
+      // Send updates even before exit is detected (to show detection is running)
+      if (_exitTime != null) {
+        _updateCurrentStats();
+      } else {
+        // Send null stats to indicate detection is running but no exit yet
+        _statsController.add(null);
+      }
     });
   }
   

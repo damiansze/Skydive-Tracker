@@ -20,7 +20,7 @@ class FreefallDetectionWidget extends ConsumerStatefulWidget {
 }
 
 class _FreefallDetectionWidgetState extends ConsumerState<FreefallDetectionWidget> {
-  late FreefallDetectionService _detectionService;
+  FreefallDetectionService? _detectionService;
   FreefallStats? _currentStats;
   bool _isDetecting = false;
   StreamSubscription<FreefallStats?>? _statsSubscription;
@@ -28,24 +28,40 @@ class _FreefallDetectionWidgetState extends ConsumerState<FreefallDetectionWidge
   Timer? _updateTimer;
 
   @override
+  void initState() {
+    super.initState();
+    _detectionService = FreefallDetectionService();
+  }
+
+  @override
   void dispose() {
     _statsSubscription?.cancel();
     _updateTimer?.cancel();
-    _detectionService.dispose();
+    _detectionService?.dispose();
     super.dispose();
   }
 
   Future<void> _startDetection() async {
+    if (_detectionService == null) {
+      _detectionService = FreefallDetectionService();
+    }
+    
     setState(() {
       _isDetecting = true;
       _detectionStartTime = DateTime.now();
     });
 
-    _statsSubscription = _detectionService.statsStream.listen((stats) {
-      setState(() {
-        _currentStats = stats;
-      });
-      widget.onStatsUpdated(stats);
+    _statsSubscription = _detectionService!.statsStream.listen((stats) {
+      if (mounted) {
+        setState(() {
+          // Only update _currentStats if stats is not null (exit detected)
+          // If stats is null, detection is running but exit not yet detected
+          if (stats != null) {
+            _currentStats = stats;
+          }
+        });
+        widget.onStatsUpdated(stats);
+      }
     });
 
     // Update UI every second to show detection runtime
@@ -57,31 +73,57 @@ class _FreefallDetectionWidgetState extends ConsumerState<FreefallDetectionWidge
       }
     });
 
-    await _detectionService.startDetection();
+    try {
+      await _detectionService!.startDetection();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isDetecting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Starten der Detektion: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _stopDetection() async {
-    await _detectionService.stopDetection();
-    _statsSubscription?.cancel();
-    _updateTimer?.cancel();
+    if (_detectionService == null) return;
     
-    final finalStats = _detectionService.getCurrentStats();
-    setState(() {
-      _isDetecting = false;
-      _currentStats = finalStats;
-      _detectionStartTime = null;
-    });
-    widget.onStatsUpdated(finalStats);
+    try {
+      await _detectionService!.stopDetection();
+      _statsSubscription?.cancel();
+      _updateTimer?.cancel();
+      
+      final finalStats = _detectionService!.getCurrentStats();
+      if (mounted) {
+        setState(() {
+          _isDetecting = false;
+          _currentStats = finalStats;
+          _detectionStartTime = null;
+        });
+        widget.onStatsUpdated(finalStats);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Stoppen der Detektion: $e')),
+        );
+      }
+    }
   }
 
   void _resetDetection() {
-    _detectionService.reset();
+    _detectionService?.reset();
     _updateTimer?.cancel();
-    setState(() {
-      _currentStats = null;
-      _detectionStartTime = null;
-    });
-    widget.onStatsUpdated(null);
+    if (mounted) {
+      setState(() {
+        _isDetecting = false;
+        _currentStats = null;
+        _detectionStartTime = null;
+      });
+      widget.onStatsUpdated(null);
+    }
   }
   
   String _getDetectionRuntime() {
@@ -310,19 +352,18 @@ class _FreefallDetectionWidgetState extends ConsumerState<FreefallDetectionWidge
         ],
         
         // Control buttons
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _stopDetection,
-                icon: const Icon(Icons.stop),
-                label: const Text('Stoppen'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: _isDetecting ? _stopDetection : null,
+            icon: const Icon(Icons.stop),
+            label: const Text('Detektion stoppen'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
             ),
-          ],
+          ),
         ),
       ],
     );
