@@ -230,6 +230,9 @@ class ApiService {
       if (freefallStats != null) 'freefall_stats': freefallStats.toMap(),
     };
     final data = await _post('/jumps/', jumpMap) as Map<String, dynamic>;
+    // Debug: Log response from backend
+    debugPrint('API createJump response - freefall_stats: ${data['freefall_stats']}');
+    debugPrint('API createJump response - full data keys: ${data.keys.toList()}');
     return Jump.fromMap(data);
   }
 
@@ -247,6 +250,9 @@ class ApiService {
       if (jump.freefallStats != null) 'freefall_stats': jump.freefallStats!.toMap(),
     };
     final data = await _put('/jumps/${jump.id}', jumpMap) as Map<String, dynamic>;
+    // Debug: Log response from backend
+    debugPrint('API updateJump response - freefall_stats: ${data['freefall_stats']}');
+    debugPrint('API updateJump response - full data keys: ${data.keys.toList()}');
     return Jump.fromMap(data);
   }
 
