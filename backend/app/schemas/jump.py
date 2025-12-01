@@ -56,32 +56,6 @@ class JumpResponse(JumpBase):
         "populate_by_name": True,
     }
     
-    def model_dump(self, **kwargs):
-        """Override model_dump to exclude checklist_completed and format freefall_stats"""
-        data = super().model_dump(**kwargs)
-        # Remove checklist_completed if it somehow got included
-        data.pop("checklist_completed", None)
-        
-        # Format freefall_stats from model attributes if not already in dict format
-        if "freefall_stats" not in data or data["freefall_stats"] is None:
-            # Try to get from model attributes
-            if hasattr(self, '__dict__'):
-                model_dict = self.__dict__
-                if any(k.startswith('freefall_') or k in ['exit_time', 'deployment_time'] for k in model_dict.keys()):
-                    freefall_data = {}
-                    if hasattr(self, 'freefall_duration_seconds') and self.freefall_duration_seconds is not None:
-                        freefall_data['freefall_duration_seconds'] = self.freefall_duration_seconds
-                    if hasattr(self, 'max_vertical_velocity_ms') and self.max_vertical_velocity_ms is not None:
-                        freefall_data['max_vertical_velocity_ms'] = self.max_vertical_velocity_ms
-                    if hasattr(self, 'exit_time') and self.exit_time is not None:
-                        freefall_data['exit_time'] = self.exit_time
-                    if hasattr(self, 'deployment_time') and self.deployment_time is not None:
-                        freefall_data['deployment_time'] = self.deployment_time
-                    if freefall_data:
-                        data['freefall_stats'] = freefall_data
-        
-        return data
-    
     @classmethod
     def model_validate(cls, obj, **kwargs):
         """Override model_validate to exclude checklist_completed from model and format freefall_stats"""
@@ -99,12 +73,39 @@ class JumpResponse(JumpBase):
             if hasattr(obj, 'max_vertical_velocity_ms') and obj.max_vertical_velocity_ms is not None:
                 freefall_data['max_vertical_velocity_ms'] = obj.max_vertical_velocity_ms
             if hasattr(obj, 'exit_time') and obj.exit_time is not None:
-                freefall_data['exit_time'] = obj.exit_time
+                freefall_data['exit_time'] = obj.exit_time.isoformat() if isinstance(obj.exit_time, datetime) else obj.exit_time
             if hasattr(obj, 'deployment_time') and obj.deployment_time is not None:
-                freefall_data['deployment_time'] = obj.deployment_time
+                freefall_data['deployment_time'] = obj.deployment_time.isoformat() if isinstance(obj.deployment_time, datetime) else obj.deployment_time
             
             if freefall_data:
                 data['freefall_stats'] = freefall_data
             
             return super().model_validate(data, **kwargs)
         return super().model_validate(obj, **kwargs)
+    
+    def model_dump(self, **kwargs):
+        """Override model_dump to exclude checklist_completed and ensure freefall_stats is formatted"""
+        data = super().model_dump(**kwargs)
+        # Remove checklist_completed if it somehow got included
+        data.pop("checklist_completed", None)
+        
+        # Ensure freefall_stats is properly formatted
+        if "freefall_stats" not in data or data["freefall_stats"] is None:
+            # Try to get from model attributes if this is a model instance
+            if hasattr(self, '__dict__'):
+                model_dict = self.__dict__
+                freefall_data = {}
+                if 'freefall_duration_seconds' in model_dict and model_dict['freefall_duration_seconds'] is not None:
+                    freefall_data['freefall_duration_seconds'] = model_dict['freefall_duration_seconds']
+                if 'max_vertical_velocity_ms' in model_dict and model_dict['max_vertical_velocity_ms'] is not None:
+                    freefall_data['max_vertical_velocity_ms'] = model_dict['max_vertical_velocity_ms']
+                if 'exit_time' in model_dict and model_dict['exit_time'] is not None:
+                    exit_time = model_dict['exit_time']
+                    freefall_data['exit_time'] = exit_time.isoformat() if isinstance(exit_time, datetime) else exit_time
+                if 'deployment_time' in model_dict and model_dict['deployment_time'] is not None:
+                    deployment_time = model_dict['deployment_time']
+                    freefall_data['deployment_time'] = deployment_time.isoformat() if isinstance(deployment_time, datetime) else deployment_time
+                if freefall_data:
+                    data['freefall_stats'] = freefall_data
+        
+        return data

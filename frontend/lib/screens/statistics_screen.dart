@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map/src/layer/tile_layer/tile_provider/network_tile_provider.dart';
 import '../models/jump.dart';
 import '../providers/jump_provider.dart';
 import '../providers/database_provider.dart';
@@ -261,6 +262,169 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     }
   }
 
+  Widget _buildFreefallStatsSection(BuildContext context, List<Jump> jumps) {
+    // Filter jumps with freefall stats
+    final jumpsWithStats = jumps.where((j) => j.freefallStats != null && j.freefallStats!.hasData).toList();
+    
+    if (jumpsWithStats.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    // Calculate statistics safely
+    final jumpsWithDuration = jumpsWithStats
+        .where((j) => j.freefallStats!.freefallDurationSeconds != null)
+        .toList();
+    final jumpsWithVelocity = jumpsWithStats
+        .where((j) => j.freefallStats!.maxVerticalVelocityMs != null)
+        .toList();
+    
+    if (jumpsWithDuration.isEmpty && jumpsWithVelocity.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    final avgFreefallDuration = jumpsWithDuration.isNotEmpty
+        ? jumpsWithDuration
+            .map((j) => j.freefallStats!.freefallDurationSeconds!)
+            .reduce((a, b) => a + b) / jumpsWithDuration.length
+        : 0.0;
+    
+    final avgMaxVelocity = jumpsWithVelocity.isNotEmpty
+        ? jumpsWithVelocity
+            .map((j) => j.freefallStats!.maxVerticalVelocityMs!)
+            .reduce((a, b) => a + b) / jumpsWithVelocity.length
+        : 0.0;
+    
+    final maxFreefallDuration = jumpsWithDuration.isNotEmpty
+        ? jumpsWithDuration
+            .map((j) => j.freefallStats!.freefallDurationSeconds!)
+            .reduce((a, b) => a > b ? a : b)
+        : 0.0;
+    
+    final maxVelocity = jumpsWithVelocity.isNotEmpty
+        ? jumpsWithVelocity
+            .map((j) => j.freefallStats!.maxVerticalVelocityMs!)
+            .reduce((a, b) => a > b ? a : b)
+        : 0.0;
+    
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.flight_takeoff,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Freefall-Statistiken',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${jumpsWithStats.length}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            if (jumpsWithDuration.isNotEmpty)
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatRow(
+                      'Ø Freefall-Dauer',
+                      '${avgFreefallDuration.toStringAsFixed(1)}s',
+                      Icons.timer,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildStatRow(
+                      'Max. Freefall-Dauer',
+                      '${maxFreefallDuration.toStringAsFixed(1)}s',
+                      Icons.timer_outlined,
+                    ),
+                  ),
+                ],
+              ),
+            if (jumpsWithDuration.isNotEmpty && jumpsWithVelocity.isNotEmpty)
+              const SizedBox(height: 16),
+            if (jumpsWithVelocity.isNotEmpty)
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatRow(
+                      'Ø Max. Geschwindigkeit',
+                      '${(avgMaxVelocity * 3.6).toStringAsFixed(1)} km/h',
+                      Icons.speed,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildStatRow(
+                      'Höchste Geschwindigkeit',
+                      '${(maxVelocity * 3.6).toStringAsFixed(1)} km/h',
+                      Icons.speed_outlined,
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildStatRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStatCard(
     BuildContext context, {
     required IconData icon,
@@ -482,6 +646,10 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
+                
+                // Freefall Statistics (if available)
+                _buildFreefallStatsSection(context, jumps),
                 const SizedBox(height: 20),
                 // Jump Type and Method Statistics
                 statisticsSummaryAsync.when(
@@ -768,8 +936,14 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                   userAgentPackageName: 'com.example.flutter_skydive_tracker',
                                   maxZoom: 19,
+                                  tileProvider: NetworkTileProvider(
+                                    headers: const {
+                                      'User-Agent': 'SkydiveTracker/1.0',
+                                    },
+                                  ),
                                   errorTileCallback: (tile, error, stackTrace) {
                                     // Handle tile loading errors gracefully
+                                    debugPrint('Tile loading error: $error');
                                   },
                                 ),
                                 MarkerLayer(

@@ -27,17 +27,42 @@ class FreefallStats {
   }
 
   factory FreefallStats.fromMap(Map<String, dynamic>? map) {
-    if (map == null) return FreefallStats();
+    if (map == null || map.isEmpty) return FreefallStats();
+    
+    // Handle both string and DateTime objects
+    DateTime? parseDateTime(dynamic value) {
+      if (value == null) return null;
+      if (value is DateTime) return value;
+      if (value is String) {
+        try {
+          return DateTime.parse(value);
+        } catch (e) {
+          return null;
+        }
+      }
+      return null;
+    }
+    
+    // Handle numeric values (int or double)
+    double? parseDouble(dynamic value) {
+      if (value == null) return null;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) {
+        try {
+          return double.parse(value);
+        } catch (e) {
+          return null;
+        }
+      }
+      return null;
+    }
     
     return FreefallStats(
-      freefallDurationSeconds: map['freefall_duration_seconds'] as double?,
-      maxVerticalVelocityMs: map['max_vertical_velocity_ms'] as double?,
-      exitTime: map['exit_time'] != null 
-          ? DateTime.parse(map['exit_time'] as String)
-          : null,
-      deploymentTime: map['deployment_time'] != null
-          ? DateTime.parse(map['deployment_time'] as String)
-          : null,
+      freefallDurationSeconds: parseDouble(map['freefall_duration_seconds']),
+      maxVerticalVelocityMs: parseDouble(map['max_vertical_velocity_ms']),
+      exitTime: parseDateTime(map['exit_time']),
+      deploymentTime: parseDateTime(map['deployment_time']),
     );
   }
 

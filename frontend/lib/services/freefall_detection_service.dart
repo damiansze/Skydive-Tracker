@@ -5,9 +5,9 @@ import '../models/freefall_stats.dart';
 
 /// Service for detecting freefall using device sensors
 class FreefallDetectionService {
-  // For testing: Set to true to always use simulation, or use environment variable
-  static const bool _forceSimulation = true; // Set to false for production
-  static const bool useSimulatedSensors = _forceSimulation || bool.fromEnvironment('USE_SIMULATED_SENSORS', defaultValue: false);
+  // For testing: Use environment variable to enable simulation
+  // Set USE_SIMULATED_SENSORS=true when running: flutter run --dart-define=USE_SIMULATED_SENSORS=true
+  static const bool useSimulatedSensors = bool.fromEnvironment('USE_SIMULATED_SENSORS', defaultValue: false);
   
   // Detection thresholds
   static const double exitAccelerationThreshold = 2.0; // m/s² - sudden acceleration change
@@ -284,20 +284,35 @@ class FreefallDetectionService {
       double acceleration;
       double velocity;
       
+      // Calculate time since exit (if exit detected)
+      final timeSinceExit = _exitTime != null 
+          ? now.difference(_exitTime!).inMilliseconds / 1000.0
+          : 0.0;
+      
       if (elapsed < 2.0) {
-        // Phase 1: Exit from aircraft (first 2 seconds)
-        acceleration = 12.0 + Random().nextDouble() * 3.0; // High acceleration
-        velocity = elapsed * 10.0; // Accelerating
-      } else if (elapsed < 50.0) {
-        // Phase 2: Freefall (2-50 seconds)
+        // Phase 1: Waiting in aircraft (first 2 seconds) - normal flight
+        acceleration = 9.8 + (Random().nextDouble() - 0.5) * 0.3; // Near gravity (in aircraft)
+        velocity = 0.0; // No freefall velocity yet
+      } else if (timeSinceExit < 48.0) {
+        // Phase 2: Freefall (after exit, up to 48 seconds)
+        // Terminal velocity for skydiver: ~55 m/s = ~198 km/h
+        final freefallTime = timeSinceExit;
+        // Accelerate to terminal velocity over ~10 seconds
+        if (freefallTime < 10.0) {
+          velocity = 9.8 * freefallTime; // Accelerating
+          if (velocity > 55.0) velocity = 55.0;
+        } else {
+          velocity = 55.0 + (Random().nextDouble() - 0.5) * 2.0; // Terminal velocity with small variations
+          if (velocity > 60.0) velocity = 60.0; // Max realistic speed
+          if (velocity < 50.0) velocity = 50.0;
+        }
         acceleration = 9.8 + (Random().nextDouble() - 0.5) * 0.5; // Near gravity
-        velocity = 9.8 * (elapsed - 2.0); // Terminal velocity ~55 m/s
-        if (velocity > 55.0) velocity = 55.0;
       } else {
-        // Phase 3: Deployment (after 50 seconds)
-        acceleration = 25.0 + Random().nextDouble() * 10.0; // Strong deceleration
-        velocity = 55.0 - (elapsed - 50.0) * 5.0; // Decelerating
-        if (velocity < 0) velocity = 0;
+        // Phase 3: Deployment (after 48 seconds of freefall = 50 seconds total)
+        acceleration = 30.0 + Random().nextDouble() * 10.0; // Strong deceleration
+        final deploymentTime = timeSinceExit - 48.0;
+        velocity = 55.0 - deploymentTime * 8.0; // Rapid deceleration
+        if (velocity < 5.0) velocity = 5.0; // Minimum speed under canopy
       }
       
       final reading = SensorReading(
@@ -316,28 +331,32 @@ class FreefallDetectionService {
       
       // Auto-detect exit after 2 seconds (simulating waiting in aircraft, then exit)
       if (_exitTime == null && elapsed >= 2.0) {
-        _exitTime = now.subtract(Duration(milliseconds: ((elapsed - 2.0) * 1000).round()));
+        _exitTime = now;
         _inFreefall = true;
         print('Simulated exit detected at ${elapsed}s');
       }
       
-      // Auto-detect deployment after 50 seconds of freefall (52 seconds total)
-      if (_inFreefall && _deploymentTime == null && elapsed >= 52.0) {
+      // Auto-detect deployment after 48 seconds of freefall (use timeSinceExit, not elapsed)
+      if (_inFreefall && _deploymentTime == null && timeSinceExit >= 48.0) {
         _deploymentTime = now;
         _inFreefall = false;
-        print('Simulated deployment detected at ${elapsed}s');
+        print('Simulated deployment detected at ${elapsed}s (${timeSinceExit.toStringAsFixed(1)}s freefall)');
         _calculateFinalStats();
         timer.cancel();
         _simulationTimer = null;
+        _isDetecting = false; // Stop detection
         return;
       }
       
-      // Update max velocity during freefall
-      if (_inFreefall && velocity > _maxVerticalVelocity) {
-        _maxVerticalVelocity = velocity;
+      // Update max velocity during freefall (only count freefall phase, use actual velocity from simulation)
+      if (_inFreefall && timeSinceExit > 0) {
+        // Use the simulated velocity directly
+        if (velocity > _maxVerticalVelocity) {
+          _maxVerticalVelocity = velocity;
+        }
       }
       
-      // Send updates even before exit is detected (to show detection is running)
+      // Send updates
       if (_exitTime != null) {
         _updateCurrentStats();
       } else {

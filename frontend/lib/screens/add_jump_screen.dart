@@ -280,6 +280,13 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
         );
         await jumpNotifier.updateJump(updatedJump);
       } else {
+        // Debug: Print freefall stats before saving
+        if (_freefallStats != null) {
+          debugPrint('Saving jump with freefall stats: ${_freefallStats!.toMap()}');
+        } else {
+          debugPrint('Saving jump without freefall stats');
+        }
+        
         await jumpNotifier.createJump(
           date: dateTime,
           location: _locationController.text.trim(),
@@ -642,7 +649,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
               // Freefall Detection (only for new jumps)
               if (widget.jump == null)
                 FreefallDetectionWidget(
-                  useSimulation: const bool.fromEnvironment('USE_SIMULATED_SENSORS', defaultValue: false),
+                  useSimulation: const bool.fromEnvironment('USE_SIMULATED_SENSORS', defaultValue: true), // Default to simulation for testing
                   onStatsUpdated: (stats) {
                     setState(() {
                       _freefallStats = stats;
