@@ -540,7 +540,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
 
     if (confirmed == true) {
       try {
-        // Check if this is the last jump matching current filters
+        // Check if this is the last jump matching current filters BEFORE deletion
         final allJumps = ref.read(jumpNotifierProvider).value ?? [];
         final filteredJumps = allJumps.where((j) {
           if (_selectedJumpTypeFilter != null && j.jumpType != _selectedJumpTypeFilter) return false;
@@ -551,9 +551,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         
         final isLastFilteredJump = filteredJumps.length == 1 && filteredJumps.first.id == jump.id;
         
-        await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
-        
-        // If this was the last filtered jump, reset filters immediately
+        // Reset filters BEFORE deletion if this is the last filtered jump
         if (isLastFilteredJump && mounted) {
           setState(() {
             _selectedJumpTypeFilter = null;
@@ -561,6 +559,8 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             _selectedLocationFilter = null;
           });
         }
+        
+        await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -610,29 +610,28 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       ),
       body: jumpsAsync.when(
         data: (allJumps) {
-          // Reset filters if selected values are no longer available
+          // First, check and reset filters if selected values are no longer available
+          bool filtersChanged = false;
+          
           if (_selectedJumpTypeFilter != null) {
             final hasJumpType = allJumps.any((j) => j.jumpType == _selectedJumpTypeFilter);
             if (!hasJumpType) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() {
-                    _selectedJumpTypeFilter = null;
-                  });
-                }
-              });
+              _selectedJumpTypeFilter = null;
+              filtersChanged = true;
             }
           }
           if (_selectedJumpMethodFilter != null) {
             final hasJumpMethod = allJumps.any((j) => j.jumpMethod == _selectedJumpMethodFilter);
             if (!hasJumpMethod) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() {
-                    _selectedJumpMethodFilter = null;
-                  });
-                }
-              });
+              _selectedJumpMethodFilter = null;
+              filtersChanged = true;
+            }
+          }
+          if (_selectedLocationFilter != null) {
+            final hasLocation = allJumps.any((j) => j.location == _selectedLocationFilter);
+            if (!hasLocation) {
+              _selectedLocationFilter = null;
+              filtersChanged = true;
             }
           }
           
@@ -648,24 +647,29 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             jumps = jumps.where((j) => j.location == _selectedLocationFilter).toList();
           }
           
-          // If filtered list is empty but there are still jumps, reset filters immediately
+          // If filtered list is empty but there are still jumps, reset all filters immediately
           if (jumps.isEmpty && allJumps.isNotEmpty) {
             // Check if any filters are active
             if (_selectedJumpTypeFilter != null || _selectedJumpMethodFilter != null || _selectedLocationFilter != null) {
               // Reset filters immediately for this render cycle
-              // Use a flag to trigger setState after build completes
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() {
-                    _selectedJumpTypeFilter = null;
-                    _selectedJumpMethodFilter = null;
-                    _selectedLocationFilter = null;
-                  });
-                }
-              });
-              // Show all jumps for this render (before filters are reset)
+              _selectedJumpTypeFilter = null;
+              _selectedJumpMethodFilter = null;
+              _selectedLocationFilter = null;
+              filtersChanged = true;
+              // Show all jumps for this render
               jumps = allJumps;
             }
+          }
+          
+          // Trigger setState if filters were changed (after build completes)
+          if (filtersChanged) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  // Filters already reset above, just trigger rebuild
+                });
+              }
+            });
           }
           
           return SingleChildScrollView(

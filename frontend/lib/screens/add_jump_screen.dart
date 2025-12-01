@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -121,44 +122,69 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     }
   }
 
+  Timer? _locationDebounceTimer;
+  
   Future<void> _onLocationChanged() async {
     final locationText = _locationController.text.trim();
     
-    // Get suggestions for autocomplete
-    if (locationText.length >= 3) {
-      final suggestions = await GeocodingService.getAddressSuggestions(locationText);
-      if (mounted) {
-        setState(() {
-          _locationSuggestions = suggestions;
-          _showSuggestions = suggestions.isNotEmpty;
-        });
-      }
-    } else {
+    // Cancel previous timer
+    _locationDebounceTimer?.cancel();
+    
+    // Hide suggestions immediately if text is too short
+    if (locationText.length < 3) {
       if (mounted) {
         setState(() {
           _locationSuggestions = [];
           _showSuggestions = false;
         });
       }
+      return;
     }
     
-    // Debounce geocoding to avoid too many API calls
+    // Debounce suggestions to avoid too many API calls
+    _locationDebounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+      
+      // Check if text hasn't changed
+      if (_locationController.text.trim() != locationText) return;
+      
+      // Get suggestions for autocomplete (only show, don't auto-select)
+      try {
+        final suggestions = await GeocodingService.getAddressSuggestions(locationText);
+        if (mounted && _locationController.text.trim() == locationText) {
+          setState(() {
+            _locationSuggestions = suggestions;
+            _showSuggestions = suggestions.isNotEmpty;
+          });
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+    });
+    
+    // Don't do automatic geocoding - user must explicitly select from map or suggestions
+    // This prevents overwriting user input with wrong addresses
+  }
+  
+  void _selectLocationSuggestion(String suggestion) {
+    setState(() {
+      _locationController.text = suggestion;
+      _showSuggestions = false;
+      _locationSuggestions = [];
+    });
+    // Geocode the selected suggestion
+    _geocodeLocation(suggestion);
+  }
+  
+  Future<void> _geocodeLocation(String address) async {
     if (_isGeocoding) return;
-    
-    if (locationText.length < 3) return; // Wait for at least 3 characters
-    
-    // Wait a bit before geocoding
-    await Future.delayed(const Duration(milliseconds: 800));
-    
-    // Check if text hasn't changed during delay
-    if (_locationController.text.trim() != locationText) return;
     
     setState(() {
       _isGeocoding = true;
     });
     
     try {
-      final coordinates = await GeocodingService.getCoordinatesFromAddress(locationText);
+      final coordinates = await GeocodingService.getCoordinatesFromAddress(address);
       if (coordinates != null && mounted) {
         setState(() {
           _latitude = coordinates.latitude;
@@ -175,16 +201,6 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
         });
       }
     }
-  }
-  
-  void _selectLocationSuggestion(String suggestion) {
-    setState(() {
-      _locationController.text = suggestion;
-      _showSuggestions = false;
-      _locationSuggestions = [];
-    });
-    // Trigger geocoding for selected suggestion
-    _onLocationChanged();
   }
 
   Future<void> _selectDate() async {
@@ -427,6 +443,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
 
   @override
   void dispose() {
+    _locationDebounceTimer?.cancel();
     _locationController.removeListener(_onLocationChanged);
     _locationController.dispose();
     _altitudeController.dispose();
