@@ -551,25 +551,21 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         
         final isLastFilteredJump = filteredJumps.length == 1 && filteredJumps.first.id == jump.id;
         
-        // Delete the jump first - this will trigger a rebuild with updated data
+        // Delete the jump and wait for it to complete
         await ref.read(jumpNotifierProvider.notifier).deleteJump(jump.id);
         
+        // Wait for the provider to update (one frame)
+        await Future.delayed(Duration.zero);
+        
         // If this was the last filtered jump, reset filters AFTER deletion
-        // This ensures the UI will show all remaining jumps
+        // This ensures the UI rebuilds with cleared filters and updated data
         if (isLastFilteredJump && mounted) {
-          // Reset filters immediately - this will cause build() to recalculate jumps list
           setState(() {
             _selectedJumpTypeFilter = null;
             _selectedJumpMethodFilter = null;
             _selectedLocationFilter = null;
-            _cachedFilters = null; // Reset cache to ensure statistics use cleared filters
+            _cachedFilters = null;
           });
-          
-          // Invalidate providers to ensure statistics are updated with cleared filters
-          // This ensures consistency between statistics and jump list
-          ref.invalidate(distinctLocationsProvider);
-          ref.invalidate(totalJumpsProvider);
-          ref.invalidate(statisticsSummaryProvider);
         }
         
         if (mounted) {
@@ -620,37 +616,9 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       ),
       body: jumpsAsync.when(
         data: (allJumps) {
-          // CRITICAL: First check if filtered list would be empty but jumps exist
-          // This handles the case when the last filtered jump is deleted
-          // We must reset filters BEFORE calculating the jumps list
+          // Check and reset filters if selected values are no longer available
           bool filtersChanged = false;
           
-          // Calculate what the filtered list would be with current filters
-          List<Jump> testJumps = allJumps;
-          if (_selectedJumpTypeFilter != null) {
-            testJumps = testJumps.where((j) => j.jumpType == _selectedJumpTypeFilter).toList();
-          }
-          if (_selectedJumpMethodFilter != null) {
-            testJumps = testJumps.where((j) => j.jumpMethod == _selectedJumpMethodFilter).toList();
-          }
-          if (_selectedLocationFilter != null) {
-            testJumps = testJumps.where((j) => j.location == _selectedLocationFilter).toList();
-          }
-          
-          // If filtered list is empty but there are still jumps, reset all filters IMMEDIATELY
-          // This must happen BEFORE we calculate the final jumps list
-          if (testJumps.isEmpty && allJumps.isNotEmpty) {
-            // Check if any filters are active
-            if (_selectedJumpTypeFilter != null || _selectedJumpMethodFilter != null || _selectedLocationFilter != null) {
-              // Reset filters immediately for this render cycle
-              _selectedJumpTypeFilter = null;
-              _selectedJumpMethodFilter = null;
-              _selectedLocationFilter = null;
-              filtersChanged = true;
-            }
-          }
-          
-          // Now check and reset filters if selected values are no longer available
           if (_selectedJumpTypeFilter != null) {
             final hasJumpType = allJumps.any((j) => j.jumpType == _selectedJumpTypeFilter);
             if (!hasJumpType) {
@@ -673,7 +641,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             }
           }
           
-          // NOW filter jumps based on selected filters (which may have been reset above)
+          // Filter jumps based on selected filters
           List<Jump> jumps = allJumps;
           if (_selectedJumpTypeFilter != null) {
             jumps = jumps.where((j) => j.jumpType == _selectedJumpTypeFilter).toList();
@@ -685,29 +653,23 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             jumps = jumps.where((j) => j.location == _selectedLocationFilter).toList();
           }
           
-          // FINAL SAFETY CHECK: Ensure jumps is never empty when allJumps is not empty
-          // This prevents the "Noch keine Sprünge erfasst" message from showing incorrectly
+          // If filtered list is empty but there are still jumps, reset all filters
           if (jumps.isEmpty && allJumps.isNotEmpty) {
-            // Force show all jumps if filtered list is empty but jumps exist
-            jumps = allJumps;
-            // Also ensure filters are cleared
             if (_selectedJumpTypeFilter != null || _selectedJumpMethodFilter != null || _selectedLocationFilter != null) {
               _selectedJumpTypeFilter = null;
               _selectedJumpMethodFilter = null;
               _selectedLocationFilter = null;
+              _cachedFilters = null;
               filtersChanged = true;
+              jumps = allJumps; // Show all jumps
             }
           }
           
-          // Trigger setState if filters were changed (after build completes)
-          // This ensures the UI rebuilds with cleared filters
+          // Trigger setState if filters were changed
           if (filtersChanged) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
-                setState(() {
-                  // Filters already reset above, just trigger rebuild
-                  // This will cause the build method to run again with cleared filters
-                });
+                setState(() {});
               }
             });
           }
