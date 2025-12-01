@@ -81,12 +81,6 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     _selectedEquipmentIds = jump.equipmentIds.toSet();
     _freefallStats = jump.freefallStats;
     
-    // Debug: Print freefall stats when loading jump
-    if (_freefallStats != null && _freefallStats!.hasData) {
-      debugPrint('Loading jump with freefall stats: ${_freefallStats!.toMap()}');
-    } else {
-      debugPrint('Loading jump without freefall stats');
-    }
     
     if (_latitude != null && _longitude != null) {
       _currentLocation = LatLng(_latitude!, _longitude!);
@@ -363,13 +357,6 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
         );
         await jumpNotifier.updateJump(updatedJump);
       } else {
-        // Debug: Print freefall stats before saving
-        if (_freefallStats != null) {
-          debugPrint('Saving jump with freefall stats: ${_freefallStats!.toMap()}');
-        } else {
-          debugPrint('Saving jump without freefall stats');
-        }
-        
         await jumpNotifier.createJump(
           date: dateTime,
           location: _locationController.text.trim(),
@@ -601,54 +588,53 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                     } : null,
                     onTapOutside: _isEditingMode ? (event) {
                       // Only hide suggestions if user is not selecting a suggestion
+                      // Use a small delay to allow tap events on suggestions to process first
                       if (!_isSelectingSuggestion) {
-                        setState(() {
-                          _showSuggestions = false;
+                        Future.delayed(const Duration(milliseconds: 50), () {
+                          if (mounted && !_isSelectingSuggestion) {
+                            setState(() {
+                              _showSuggestions = false;
+                            });
+                          }
                         });
                       }
                     } : null,
                   ),
                   if (_showSuggestions && _locationSuggestions.isNotEmpty && _isEditingMode)
-                    GestureDetector(
-                      // Prevent tap events from propagating to onTapOutside
-                      onTap: () {
-                        // Do nothing, just prevent tap from propagating
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(top: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(4),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        constraints: const BoxConstraints(maxHeight: 200),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: _locationSuggestions.length,
-                          itemBuilder: (context, index) {
-                            final suggestion = _locationSuggestions[index];
-                            return InkWell(
-                              onTap: () {
-                                _selectLocationSuggestion(suggestion);
-                              },
-                              child: ListTile(
-                                dense: true,
-                                leading: const Icon(Icons.location_on, size: 20),
-                                title: Text(
-                                  suggestion,
-                                  style: const TextStyle(fontSize: 14),
-                                ),
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _locationSuggestions.length,
+                        itemBuilder: (context, index) {
+                          final suggestion = _locationSuggestions[index];
+                          return InkWell(
+                            onTap: () {
+                              _selectLocationSuggestion(suggestion);
+                            },
+                            child: ListTile(
+                              dense: true,
+                              leading: const Icon(Icons.location_on, size: 20),
+                              title: Text(
+                                suggestion,
+                                style: const TextStyle(fontSize: 14),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                 ],

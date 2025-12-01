@@ -115,17 +115,10 @@ class Jump {
       return null;
     }
     
-    // Debug logging
-    debugPrint('Parsing freefall_stats: $freefallMap');
-    
     return FreefallStats.fromMap(freefallMap);
   }
 
   factory Jump.fromMap(Map<String, dynamic> map) {
-    // Debug: Print freefall_stats from backend
-    debugPrint('Jump.fromMap - freefall_stats raw: ${map['freefall_stats']}');
-    debugPrint('Jump.fromMap - freefall_stats type: ${map['freefall_stats'].runtimeType}');
-    
     // Handle equipment_ids from backend
     List<String> equipmentIds = [];
     if (map['equipment_ids'] != null) {
@@ -159,11 +152,6 @@ class Jump {
     }
     
     final freefallStats = _parseFreefallStats(map['freefall_stats']);
-    if (freefallStats != null && freefallStats.hasData) {
-      debugPrint('Jump.fromMap - Successfully parsed freefall_stats: ${freefallStats.toMap()}');
-    } else {
-      debugPrint('Jump.fromMap - No freefall_stats parsed');
-    }
     
     return Jump(
       id: map['id'] as String,
