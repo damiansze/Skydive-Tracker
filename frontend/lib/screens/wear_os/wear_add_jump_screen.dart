@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 import '../../models/jump.dart';
 import '../../models/freefall_stats.dart';
 import '../../models/weather.dart';
@@ -33,67 +31,101 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
   bool _isLoading = false;
   bool _isSaving = false;
   FreefallStats? _freefallStats;
+  
+  // Text controller for location input
+  final TextEditingController _locationController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
   }
+  
+  @override
+  void dispose() {
+    _locationController.dispose();
+    super.dispose();
+  }
 
   Future<void> _getCurrentLocation() async {
-    setState(() => _isLoading = true);
+    // On WearOS, Geolocator causes native crashes because FusedLocationClient
+    // methods like isLocationServiceEnabled are not supported.
+    // For WearOS, we skip automatic location detection and let user enter manually.
+    // The location can also be synced from the phone app later.
+    
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _location = ''; // User will enter manually
+      });
+    }
+  }
+  
+  Future<void> _searchLocation(String query) async {
+    if (query.isEmpty) return;
     
     try {
-      // Try to check if location service is enabled
-      // Note: This API may not be supported on WearOS, so we catch exceptions
-      bool serviceEnabled = true;
-      try {
-        serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      } catch (e) {
-        // isLocationServiceEnabled not supported on WearOS, assume enabled
-        debugPrint('Location service check not supported: $e');
-      }
-      
-      if (!serviceEnabled) {
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() => _isLoading = false);
-          return;
-        }
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () => throw Exception('Location timeout'),
-      );
-      _latitude = position.latitude;
-      _longitude = position.longitude;
-      
-      // Get address
-      final latLng = LatLng(_latitude!, _longitude!);
-      final address = await GeocodingService.getAddressFromCoordinates(latLng);
-      
-      if (mounted) {
+      final result = await GeocodingService.getCoordinatesFromAddress(query);
+      if (result != null && mounted) {
         setState(() {
-          if (address != null) _location = address;
-          _isLoading = false;
+          _latitude = result.latitude;
+          _longitude = result.longitude;
+          _location = query;
         });
-        
-        // Fetch weather
         _fetchWeather();
       }
     } catch (e) {
-      debugPrint('Error getting location: $e');
-      if (mounted) setState(() => _isLoading = false);
+      debugPrint('Error searching location: $e');
     }
+  }
+  
+  void _showLocationDialog() {
+    _locationController.text = _location;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        contentPadding: const EdgeInsets.all(12),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        title: const Text('Ort eingeben', style: TextStyle(fontSize: 12)),
+        content: TextField(
+          controller: _locationController,
+          autofocus: true,
+          style: const TextStyle(fontSize: 11),
+          decoration: const InputDecoration(
+            hintText: 'z.B. Interlaken, CH',
+            hintStyle: TextStyle(fontSize: 10),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          ),
+          onSubmitted: (value) {
+            Navigator.pop(context);
+            if (value.isNotEmpty) {
+              setState(() => _location = value);
+              _searchLocation(value);
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: const Text('Abbruch', style: TextStyle(fontSize: 10)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              final value = _locationController.text;
+              if (value.isNotEmpty) {
+                setState(() => _location = value);
+                _searchLocation(value);
+              }
+            },
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: const Text('OK', style: TextStyle(fontSize: 10)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _fetchWeather() async {
@@ -264,8 +296,9 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
           ),
           const SizedBox(height: 4),
           
-          // Location
+          // Location - tappable to enter manually
           WearCard(
+            onTap: _showLocationDialog,
             padding: const EdgeInsets.all(8),
             child: Row(
               children: [
@@ -275,16 +308,21 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Ort', style: TextStyle(fontSize: 8)),
+                      const Text('Ort (tippen)', style: TextStyle(fontSize: 8)),
                       Text(
-                        _location.isEmpty ? 'Wird ermittelt...' : _location,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 9),
+                        _location.isEmpty ? 'Tippen zum Eingeben' : _location,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold, 
+                          fontSize: 9,
+                          color: _location.isEmpty ? Colors.grey : null,
+                        ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,
                       ),
                     ],
                   ),
                 ),
+                const Icon(Icons.edit, size: 12, color: Colors.grey),
               ],
             ),
           ),
