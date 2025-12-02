@@ -108,6 +108,32 @@ def init_db():
                             if "duplicate column" not in str(e).lower():
                                 raise
                 
+                # Check and add weather columns to jumps table
+                cursor.execute("PRAGMA table_info(jumps)")
+                columns = [column[1] for column in cursor.fetchall()]
+                
+                weather_columns = {
+                    'weather_temperature_celsius': 'REAL',
+                    'weather_wind_speed_kmh': 'REAL',
+                    'weather_wind_direction_degrees': 'INTEGER',
+                    'weather_wind_gusts_kmh': 'REAL',
+                    'weather_code': 'INTEGER',
+                    'weather_description': 'VARCHAR',
+                    'weather_humidity_percent': 'INTEGER',
+                    'weather_pressure_hpa': 'REAL',
+                    'weather_cloud_cover_percent': 'INTEGER',
+                    'weather_visibility_km': 'REAL',
+                }
+                
+                for col_name, col_type in weather_columns.items():
+                    if col_name not in columns:
+                        try:
+                            cursor.execute(f"ALTER TABLE jumps ADD COLUMN {col_name} {col_type}")
+                            conn.commit()
+                        except sqlite3.OperationalError as e:
+                            if "duplicate column" not in str(e).lower():
+                                raise
+                
                 conn.close()
     except Exception as e:
         # Migration errors are not critical - log but don't fail

@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
 from app.models.jump import JumpType, JumpMethod
+from app.schemas.weather import WeatherData
 
 class FreefallStatsBase(BaseModel):
     freefall_duration_seconds: Optional[float] = None
@@ -22,6 +23,7 @@ class JumpBase(BaseModel):
     # checklist_completed removed - no longer used
     notes: Optional[str] = None
     freefall_stats: Optional[FreefallStatsBase] = None
+    weather: Optional[WeatherData] = None
     
     class Config:
         # Ignore extra fields including deprecated checklist_completed
@@ -42,6 +44,7 @@ class JumpUpdate(BaseModel):
     # checklist_completed removed - no longer used
     notes: Optional[str] = None
     freefall_stats: Optional[FreefallStatsBase] = None
+    weather: Optional[WeatherData] = None
     
     class Config:
         # Ignore extra fields including deprecated checklist_completed
@@ -99,6 +102,33 @@ class JumpResponse(JumpBase):
             else:
                 # Explicitly set to None if no data exists
                 data['freefall_stats'] = None
+            
+            # Format weather data from model attributes
+            weather_data = {}
+            has_any_weather_data = False
+            
+            weather_fields = [
+                ('weather_temperature_celsius', 'temperature_celsius'),
+                ('weather_wind_speed_kmh', 'wind_speed_kmh'),
+                ('weather_wind_direction_degrees', 'wind_direction_degrees'),
+                ('weather_wind_gusts_kmh', 'wind_gusts_kmh'),
+                ('weather_code', 'weather_code'),
+                ('weather_description', 'weather_description'),
+                ('weather_humidity_percent', 'humidity_percent'),
+                ('weather_pressure_hpa', 'pressure_hpa'),
+                ('weather_cloud_cover_percent', 'cloud_cover_percent'),
+                ('weather_visibility_km', 'visibility_km'),
+            ]
+            
+            for model_field, schema_field in weather_fields:
+                if hasattr(obj, model_field) and getattr(obj, model_field) is not None:
+                    weather_data[schema_field] = getattr(obj, model_field)
+                    has_any_weather_data = True
+            
+            if has_any_weather_data:
+                data['weather'] = weather_data
+            else:
+                data['weather'] = None
             
             # Use model_validate with the prepared data dict
             return super().model_validate(data, **kwargs)

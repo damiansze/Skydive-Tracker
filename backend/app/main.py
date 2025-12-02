@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.api.v1 import jumps, equipment, profile, statistics
+from app.api.v1 import jumps, equipment, profile, statistics, weather
 from app.db.database import init_db
 from app.core.logging_config import setup_logging, get_logger
 
@@ -87,6 +87,7 @@ app.include_router(jumps.router, prefix="/api/v1/jumps", tags=["jumps"])
 app.include_router(equipment.router, prefix="/api/v1/equipment", tags=["equipment"])
 app.include_router(profile.router, prefix="/api/v1/profile", tags=["profile"])
 app.include_router(statistics.router, prefix="/api/v1/statistics", tags=["statistics"])
+app.include_router(weather.router, prefix="/api/v1/weather", tags=["weather"])
 
 @app.get("/")
 async def root():

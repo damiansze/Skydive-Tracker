@@ -7,9 +7,11 @@ import 'package:latlong2/latlong.dart';
 import '../models/jump.dart';
 import '../models/equipment.dart';
 import '../models/freefall_stats.dart';
+import '../models/weather.dart';
 import '../providers/jump_provider.dart';
 import '../providers/equipment_provider.dart';
 import '../services/geocoding_service.dart';
+import '../services/weather_service.dart';
 import '../widgets/freefall_detection_widget.dart';
 import 'map_location_picker_screen.dart';
 import 'settings_screen.dart';
@@ -46,6 +48,9 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   FreefallStats? _freefallStats;
   bool _isEditingMode = false; // For existing jumps: start in preview mode
   bool _isSelectingSuggestion = false; // Track if user is selecting a suggestion
+  WeatherData? _weatherData;
+  bool _isLoadingWeather = false;
+  String? _weatherError;
 
   bool _isInitializing = true; // Track if we're still initializing
   
@@ -80,10 +85,61 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     _selectedJumpMethod = jump.jumpMethod;
     _selectedEquipmentIds = jump.equipmentIds.toSet();
     _freefallStats = jump.freefallStats;
+    _weatherData = jump.weather;
     
     
     if (_latitude != null && _longitude != null) {
       _currentLocation = LatLng(_latitude!, _longitude!);
+    }
+  }
+
+  /// Fetch weather data for the current location and date/time
+  Future<void> _fetchWeather() async {
+    // Only fetch if we have coordinates
+    if (_latitude == null || _longitude == null) {
+      setState(() {
+        _weatherError = 'Position erforderlich für Wetterdaten';
+        _weatherData = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingWeather = true;
+      _weatherError = null;
+    });
+
+    try {
+      final dateTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedTime.hour,
+        _selectedTime.minute,
+      );
+
+      final weather = await WeatherService.getWeather(
+        latitude: _latitude!,
+        longitude: _longitude!,
+        dateTime: dateTime,
+      );
+
+      if (mounted) {
+        setState(() {
+          _weatherData = weather;
+          _isLoadingWeather = false;
+          if (weather == null) {
+            _weatherError = 'Wetter konnte nicht abgerufen werden';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingWeather = false;
+          _weatherError = 'Fehler beim Abrufen der Wetterdaten';
+        });
+      }
     }
   }
 
@@ -238,6 +294,8 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           _longitude = coordinates.longitude;
           _currentLocation = coordinates;
         });
+        // Automatically fetch weather after getting coordinates
+        _fetchWeather();
       }
     } catch (e) {
       // Geocoding failed, ignore
@@ -261,6 +319,10 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
       setState(() {
         _selectedDate = picked;
       });
+      // Refresh weather if we have coordinates
+      if (_latitude != null && _longitude != null) {
+        _fetchWeather();
+      }
     }
   }
 
@@ -282,6 +344,10 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
       setState(() {
         _selectedTime = picked;
       });
+      // Refresh weather if we have coordinates
+      if (_latitude != null && _longitude != null) {
+        _fetchWeather();
+      }
     }
   }
 
@@ -311,6 +377,9 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           _locationController.text = address;
         });
       }
+      
+      // Automatically fetch weather after selecting location from map
+      _fetchWeather();
     }
   }
 
@@ -354,6 +423,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           equipmentIds: _selectedEquipmentIds.toList(),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
           freefallStats: _freefallStats,
+          weather: _weatherData,
         );
         await jumpNotifier.updateJump(updatedJump);
       } else {
@@ -368,6 +438,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           equipmentIds: _selectedEquipmentIds.toList(),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
           freefallStats: _freefallStats,
+          weather: _weatherData,
         );
       }
 
@@ -483,6 +554,245 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildWeatherDisplay() {
+    if (_isLoadingWeather) {
+      return Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 12),
+              Text('Wetterdaten werden geladen...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_weatherError != null && _weatherData == null) {
+      return Card(
+        elevation: 2,
+        color: Colors.orange.shade50,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber, color: Colors.orange.shade700),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _weatherError!,
+                  style: TextStyle(color: Colors.orange.shade900),
+                ),
+              ),
+              if (_latitude != null && _longitude != null && _isEditingMode)
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _fetchWeather,
+                  tooltip: 'Wetter erneut abrufen',
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_weatherData == null || !_weatherData!.hasData) {
+      if (_latitude == null || _longitude == null) {
+        return Card(
+          elevation: 2,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Icon(Icons.cloud_off, color: Theme.of(context).colorScheme.outline),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Wähle eine Position auf der Karte, um Wetterdaten abzurufen',
+                    style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+
+    final weather = _weatherData!;
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  _getWeatherIcon(weather.weatherCode),
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Wetterbedingungen',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const Spacer(),
+                if (_isEditingMode)
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 20),
+                    onPressed: _fetchWeather,
+                    tooltip: 'Wetter aktualisieren',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+              ],
+            ),
+            if (weather.weatherDescription != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                weather.weatherDescription!,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            // Temperature
+            if (weather.temperatureCelsius != null)
+              _buildWeatherRow(
+                'Temperatur',
+                '${weather.temperatureCelsius!.toStringAsFixed(1)}°C',
+                Icons.thermostat,
+              ),
+            if (weather.temperatureCelsius != null && weather.hasWindData)
+              const SizedBox(height: 8),
+            // Wind
+            if (weather.hasWindData)
+              _buildWeatherRow(
+                'Wind',
+                _formatWindInfo(weather),
+                Icons.air,
+              ),
+            if (weather.windGustsKmh != null) ...[
+              const SizedBox(height: 8),
+              _buildWeatherRow(
+                'Böen',
+                '${weather.windGustsKmh!.toStringAsFixed(1)} km/h',
+                Icons.air,
+              ),
+            ],
+            if (weather.cloudCoverPercent != null) ...[
+              const SizedBox(height: 8),
+              _buildWeatherRow(
+                'Bewölkung',
+                '${weather.cloudCoverPercent}%',
+                Icons.cloud,
+              ),
+            ],
+            if (weather.humidityPercent != null) ...[
+              const SizedBox(height: 8),
+              _buildWeatherRow(
+                'Luftfeuchtigkeit',
+                '${weather.humidityPercent}%',
+                Icons.water_drop,
+              ),
+            ],
+            if (weather.visibilityKm != null) ...[
+              const SizedBox(height: 8),
+              _buildWeatherRow(
+                'Sichtweite',
+                '${weather.visibilityKm!.toStringAsFixed(1)} km',
+                Icons.visibility,
+              ),
+            ],
+            if (weather.pressureHpa != null) ...[
+              const SizedBox(height: 8),
+              _buildWeatherRow(
+                'Luftdruck',
+                '${weather.pressureHpa!.toStringAsFixed(0)} hPa',
+                Icons.speed,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeatherRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+      ],
+    );
+  }
+
+  String _formatWindInfo(WeatherData weather) {
+    final parts = <String>[];
+    if (weather.windSpeedKmh != null) {
+      parts.add('${weather.windSpeedKmh!.toStringAsFixed(1)} km/h');
+    }
+    if (weather.windDirectionName != null) {
+      parts.add('aus ${weather.windDirectionName}');
+    }
+    return parts.join(' ');
+  }
+
+  IconData _getWeatherIcon(int? code) {
+    if (code == null) return Icons.cloud;
+    
+    if (code == 0) return Icons.wb_sunny;
+    if (code <= 3) return Icons.cloud;
+    if (code <= 48) return Icons.foggy;
+    if (code <= 67) return Icons.grain; // rain/drizzle
+    if (code <= 77) return Icons.ac_unit; // snow
+    if (code <= 82) return Icons.shower;
+    if (code <= 86) return Icons.ac_unit;
+    if (code >= 95) return Icons.thunderstorm;
+    
+    return Icons.cloud;
   }
 
   @override
@@ -684,6 +994,10 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              
+              // Weather Display
+              _buildWeatherDisplay(),
               const SizedBox(height: 16),
               
               // Jump Type

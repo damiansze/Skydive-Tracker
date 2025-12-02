@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'freefall_stats.dart';
+import 'weather.dart';
 
 enum JumpType {
   TANDEM,
@@ -67,6 +67,7 @@ class Jump {
   final String? notes;
   final DateTime createdAt;
   final FreefallStats? freefallStats;
+  final WeatherData? weather;
 
   Jump({
     required this.id,
@@ -81,6 +82,7 @@ class Jump {
     this.notes,
     required this.createdAt,
     this.freefallStats,
+    this.weather,
   });
 
   Map<String, dynamic> toMap() {
@@ -96,6 +98,7 @@ class Jump {
       'notes': notes,
       'created_at': createdAt.toIso8601String(),
       'freefall_stats': freefallStats?.toMap(),
+      'weather': weather?.toMap(),
     };
   }
 
@@ -116,6 +119,25 @@ class Jump {
     }
     
     return FreefallStats.fromMap(freefallMap);
+  }
+
+  static WeatherData? _parseWeatherData(dynamic weatherData) {
+    if (weatherData == null) {
+      return null;
+    }
+    
+    // Handle different formats: Map, dict, or already parsed
+    Map<String, dynamic>? weatherMap;
+    if (weatherData is Map<String, dynamic>) {
+      weatherMap = weatherData;
+    } else if (weatherData is Map) {
+      // Convert Map<dynamic, dynamic> to Map<String, dynamic>
+      weatherMap = Map<String, dynamic>.from(weatherData);
+    } else {
+      return null;
+    }
+    
+    return WeatherData.fromMap(weatherMap);
   }
 
   factory Jump.fromMap(Map<String, dynamic> map) {
@@ -152,6 +174,7 @@ class Jump {
     }
     
     final freefallStats = _parseFreefallStats(map['freefall_stats']);
+    final weather = _parseWeatherData(map['weather']);
     
     return Jump(
       id: map['id'] as String,
@@ -166,6 +189,7 @@ class Jump {
       notes: map['notes'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
       freefallStats: freefallStats,
+      weather: weather,
     );
   }
 
@@ -182,6 +206,7 @@ class Jump {
     String? notes,
     DateTime? createdAt,
     FreefallStats? freefallStats,
+    WeatherData? weather,
   }) {
     return Jump(
       id: id ?? this.id,
@@ -196,6 +221,7 @@ class Jump {
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       freefallStats: freefallStats ?? this.freefallStats,
+      weather: weather ?? this.weather,
     );
   }
 }

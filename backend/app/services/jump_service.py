@@ -62,6 +62,28 @@ class JumpService:
                 }
             )
         
+        # Set weather data if provided
+        if jump_data.weather:
+            jump.weather_temperature_celsius = jump_data.weather.temperature_celsius
+            jump.weather_wind_speed_kmh = jump_data.weather.wind_speed_kmh
+            jump.weather_wind_direction_degrees = jump_data.weather.wind_direction_degrees
+            jump.weather_wind_gusts_kmh = jump_data.weather.wind_gusts_kmh
+            jump.weather_code = jump_data.weather.weather_code
+            jump.weather_description = jump_data.weather.weather_description
+            jump.weather_humidity_percent = jump_data.weather.humidity_percent
+            jump.weather_pressure_hpa = jump_data.weather.pressure_hpa
+            jump.weather_cloud_cover_percent = jump_data.weather.cloud_cover_percent
+            jump.weather_visibility_km = jump_data.weather.visibility_km
+            logger.info(
+                "Weather data set on jump",
+                extra={
+                    "jump_id": jump.id,
+                    "temperature": jump.weather_temperature_celsius,
+                    "wind_speed": jump.weather_wind_speed_kmh,
+                    "wind_direction": jump.weather_wind_direction_degrees,
+                }
+            )
+        
         # Add equipment associations
         if jump_data.equipment_ids:
             equipment_items = db.query(Equipment).filter(
@@ -127,6 +149,34 @@ class JumpService:
                 jump.max_vertical_velocity_ms = None
                 jump.exit_time = None
                 jump.deployment_time = None
+        
+        # Handle weather update separately
+        if "weather" in update_data:
+            weather = update_data.pop("weather")
+            if weather and isinstance(weather, dict):
+                # Update weather fields
+                jump.weather_temperature_celsius = weather.get("temperature_celsius")
+                jump.weather_wind_speed_kmh = weather.get("wind_speed_kmh")
+                jump.weather_wind_direction_degrees = weather.get("wind_direction_degrees")
+                jump.weather_wind_gusts_kmh = weather.get("wind_gusts_kmh")
+                jump.weather_code = weather.get("weather_code")
+                jump.weather_description = weather.get("weather_description")
+                jump.weather_humidity_percent = weather.get("humidity_percent")
+                jump.weather_pressure_hpa = weather.get("pressure_hpa")
+                jump.weather_cloud_cover_percent = weather.get("cloud_cover_percent")
+                jump.weather_visibility_km = weather.get("visibility_km")
+            elif weather is None:
+                # Explicitly clear weather if None is provided
+                jump.weather_temperature_celsius = None
+                jump.weather_wind_speed_kmh = None
+                jump.weather_wind_direction_degrees = None
+                jump.weather_wind_gusts_kmh = None
+                jump.weather_code = None
+                jump.weather_description = None
+                jump.weather_humidity_percent = None
+                jump.weather_pressure_hpa = None
+                jump.weather_cloud_cover_percent = None
+                jump.weather_visibility_km = None
         
         # Handle equipment update separately
         if "equipment_ids" in update_data:
