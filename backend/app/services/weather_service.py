@@ -7,8 +7,15 @@ from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
-# Open-Meteo API base URL (free, no API key required)
-OPEN_METEO_BASE_URL = "https://api.open-meteo.com/v1"
+# Open-Meteo API base URLs (free, no API key required)
+OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+
+# Variables available in forecast API
+FORECAST_HOURLY_VARS = "temperature_2m,relative_humidity_2m,surface_pressure,cloud_cover,visibility,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
+
+# Variables available in historical archive API (visibility NOT available)
+ARCHIVE_HOURLY_VARS = "temperature_2m,relative_humidity_2m,surface_pressure,cloud_cover,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
 
 
 class WeatherService:
@@ -24,7 +31,7 @@ class WeatherService:
         Fetch weather data for a specific location and time.
         
         Uses Open-Meteo API which provides:
-        - Historical weather data (up to a few days ago)
+        - Historical weather data (from 1940 onwards via archive API)
         - Current weather data
         - Forecast data (up to 16 days in future)
         
@@ -55,18 +62,14 @@ class WeatherService:
                 }
             )
             
-            if days_diff < -92:
-                # More than ~3 months in the past - historical archive
+            if days_diff < -5:
+                # More than 5 days in the past - use historical archive API
+                # Archive API has data from 1940 onwards
                 weather_data = await WeatherService._fetch_historical_archive(
                     latitude, longitude, target_datetime
                 )
-            elif days_diff < -7:
-                # More than 7 days in the past - use historical API
-                weather_data = await WeatherService._fetch_historical(
-                    latitude, longitude, target_datetime
-                )
             elif days_diff <= 16:
-                # Within forecast range (including past 7 days and future 16 days)
+                # Within forecast range (past 5 days to future 16 days)
                 weather_data = await WeatherService._fetch_forecast(
                     latitude, longitude, target_datetime
                 )
@@ -93,6 +96,17 @@ class WeatherService:
                     error="Keine Wetterdaten für diesen Zeitpunkt verfügbar"
                 )
                 
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                "HTTP status error fetching weather",
+                extra={
+                    "event": "weather_fetch_http_error", 
+                    "error": str(e),
+                    "status_code": e.response.status_code,
+                    "response_text": e.response.text[:500] if e.response.text else None,
+                }
+            )
+            return WeatherResponse(success=False, error=f"HTTP Fehler {e.response.status_code}: API nicht erreichbar")
         except httpx.HTTPError as e:
             logger.error(
                 "HTTP error fetching weather",
@@ -113,60 +127,38 @@ class WeatherService:
         longitude: float,
         target_datetime: datetime,
     ) -> Optional[WeatherData]:
-        """Fetch weather from forecast API (covers past 7 days and future 16 days)"""
-        
-        # Request hourly data for the target date
-        target_date_str = target_datetime.strftime("%Y-%m-%d")
-        
-        params = {
-            "latitude": latitude,
-            "longitude": longitude,
-            "hourly": "temperature_2m,relative_humidity_2m,surface_pressure,cloud_cover,visibility,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
-            "start_date": target_date_str,
-            "end_date": target_date_str,
-            "timezone": "auto",
-        }
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{OPEN_METEO_BASE_URL}/forecast",
-                params=params,
-                timeout=10.0
-            )
-            response.raise_for_status()
-            data = response.json()
-        
-        return WeatherService._extract_hourly_weather(data, target_datetime)
-    
-    @staticmethod
-    async def _fetch_historical(
-        latitude: float,
-        longitude: float,
-        target_datetime: datetime,
-    ) -> Optional[WeatherData]:
-        """Fetch weather from historical API (past 7-92 days)"""
+        """Fetch weather from forecast API (covers past ~5 days and future 16 days)"""
         
         target_date_str = target_datetime.strftime("%Y-%m-%d")
         
         params = {
             "latitude": latitude,
             "longitude": longitude,
-            "hourly": "temperature_2m,relative_humidity_2m,surface_pressure,cloud_cover,visibility,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
+            "hourly": FORECAST_HOURLY_VARS,
             "start_date": target_date_str,
             "end_date": target_date_str,
             "timezone": "auto",
         }
         
+        logger.info(
+            "Fetching from forecast API",
+            extra={
+                "event": "weather_fetch_forecast",
+                "url": OPEN_METEO_FORECAST_URL,
+                "params": params,
+            }
+        )
+        
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{OPEN_METEO_BASE_URL}/forecast",
+                OPEN_METEO_FORECAST_URL,
                 params=params,
-                timeout=10.0
+                timeout=15.0
             )
             response.raise_for_status()
             data = response.json()
         
-        return WeatherService._extract_hourly_weather(data, target_datetime)
+        return WeatherService._extract_hourly_weather(data, target_datetime, has_visibility=True)
     
     @staticmethod
     async def _fetch_historical_archive(
@@ -174,34 +166,53 @@ class WeatherService:
         longitude: float,
         target_datetime: datetime,
     ) -> Optional[WeatherData]:
-        """Fetch weather from historical archive API (data older than ~3 months)"""
+        """Fetch weather from historical archive API (data from 1940 onwards)"""
         
         target_date_str = target_datetime.strftime("%Y-%m-%d")
         
         params = {
             "latitude": latitude,
             "longitude": longitude,
-            "hourly": "temperature_2m,relative_humidity_2m,surface_pressure,cloud_cover,visibility,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
+            "hourly": ARCHIVE_HOURLY_VARS,
             "start_date": target_date_str,
             "end_date": target_date_str,
             "timezone": "auto",
         }
         
+        logger.info(
+            "Fetching from historical archive API",
+            extra={
+                "event": "weather_fetch_archive",
+                "url": OPEN_METEO_ARCHIVE_URL,
+                "params": params,
+            }
+        )
+        
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                "https://archive-api.open-meteo.com/v1/archive",
+                OPEN_METEO_ARCHIVE_URL,
                 params=params,
-                timeout=10.0
+                timeout=15.0
             )
             response.raise_for_status()
             data = response.json()
         
-        return WeatherService._extract_hourly_weather(data, target_datetime)
+        logger.info(
+            "Archive API response received",
+            extra={
+                "event": "weather_archive_response",
+                "has_hourly": "hourly" in data,
+                "hourly_keys": list(data.get("hourly", {}).keys()) if "hourly" in data else [],
+            }
+        )
+        
+        return WeatherService._extract_hourly_weather(data, target_datetime, has_visibility=False)
     
     @staticmethod
     def _extract_hourly_weather(
         api_response: dict,
         target_datetime: datetime,
+        has_visibility: bool = True,
     ) -> Optional[WeatherData]:
         """Extract weather data for the specific hour from API response"""
         
@@ -209,6 +220,14 @@ class WeatherService:
         times = hourly.get("time", [])
         
         if not times:
+            logger.warning(
+                "No time data in API response",
+                extra={
+                    "event": "weather_no_times",
+                    "response_keys": list(api_response.keys()),
+                    "hourly_keys": list(hourly.keys()) if hourly else [],
+                }
+            )
             return None
         
         # Find the closest hour to target time
@@ -226,9 +245,20 @@ class WeatherService:
             except ValueError:
                 continue
         
-        # If no exact match, use the first available hour
+        # If no exact match, use the first available hour (noon as fallback)
         if best_index is None and times:
-            best_index = 0
+            # Try to find noon (12:00) as a reasonable default
+            for i, time_str in enumerate(times):
+                try:
+                    time_dt = datetime.fromisoformat(time_str)
+                    if time_dt.hour == 12:
+                        best_index = i
+                        break
+                except ValueError:
+                    continue
+            # If still no match, use first available
+            if best_index is None:
+                best_index = 0
         
         if best_index is None:
             return None
@@ -244,17 +274,28 @@ class WeatherService:
         humidity = safe_get("relative_humidity_2m", best_index)
         pressure = safe_get("surface_pressure", best_index)
         cloud_cover = safe_get("cloud_cover", best_index)
-        visibility = safe_get("visibility", best_index)
         weather_code = safe_get("weather_code", best_index)
         wind_speed = safe_get("wind_speed_10m", best_index)
         wind_direction = safe_get("wind_direction_10m", best_index)
         wind_gusts = safe_get("wind_gusts_10m", best_index)
         
-        # Convert visibility from meters to kilometers
+        # Visibility only available in forecast API
+        visibility = safe_get("visibility", best_index) if has_visibility else None
         visibility_km = visibility / 1000.0 if visibility is not None else None
         
         # Get weather description from code
         weather_description = WeatherData.get_weather_description_from_code(weather_code)
+        
+        logger.info(
+            "Extracted weather data",
+            extra={
+                "event": "weather_extracted",
+                "index": best_index,
+                "temperature": temperature,
+                "wind_speed": wind_speed,
+                "weather_code": weather_code,
+            }
+        )
         
         return WeatherData(
             temperature_celsius=temperature,
@@ -268,4 +309,3 @@ class WeatherService:
             cloud_cover_percent=int(cloud_cover) if cloud_cover is not None else None,
             visibility_km=visibility_km,
         )
-
