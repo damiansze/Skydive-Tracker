@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -5,12 +6,13 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/jump.dart';
 import '../models/equipment.dart';
+import '../models/freefall_stats.dart';
 import '../providers/jump_provider.dart';
 import '../providers/equipment_provider.dart';
 import '../services/geocoding_service.dart';
+import '../widgets/freefall_detection_widget.dart';
 import 'map_location_picker_screen.dart';
 import 'settings_screen.dart';
-import 'statistics_screen.dart';
 
 class AddJumpScreen extends ConsumerStatefulWidget {
   final Jump? jump; // For editing existing jumps
@@ -26,6 +28,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   final _locationController = TextEditingController();
   final _altitudeController = TextEditingController();
   final _notesController = TextEditingController();
+  final _locationFocusNode = FocusNode(); // Focus node for location field
   
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
@@ -40,14 +43,24 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   bool _isGeocoding = false;
   List<String> _locationSuggestions = [];
   bool _showSuggestions = false;
+  FreefallStats? _freefallStats;
+  bool _isEditingMode = false; // For existing jumps: start in preview mode
+  bool _isSelectingSuggestion = false; // Track if user is selecting a suggestion
 
+  bool _isInitializing = true; // Track if we're still initializing
+  
   @override
   void initState() {
     super.initState();
     if (widget.jump != null) {
       _loadJumpData();
+      _isEditingMode = false; // Start in preview mode for existing jumps
+      _isInitializing = false;
     } else {
-      _getCurrentLocation();
+      _isEditingMode = true; // Always editable for new jumps
+      // Don't auto-fetch location on init - let user choose when to use current location
+      // This prevents overwriting user input
+      _isInitializing = false;
     }
     
     // Listen to location field changes for geocoding
@@ -66,6 +79,8 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     _selectedJumpType = jump.jumpType;
     _selectedJumpMethod = jump.jumpMethod;
     _selectedEquipmentIds = jump.equipmentIds.toSet();
+    _freefallStats = jump.freefallStats;
+    
     
     if (_latitude != null && _longitude != null) {
       _currentLocation = LatLng(_latitude!, _longitude!);
@@ -73,6 +88,13 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
+    // Only update location if user is not actively typing
+    // This prevents overwriting user input
+    if (!_isEditingMode || _locationController.text.trim().isNotEmpty) {
+      // Don't overwrite if user has already entered something
+      return;
+    }
+    
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -98,54 +120,118 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
         _currentLocation = LatLng(_latitude!, _longitude!);
       });
       
-      // Get address for current location
-      final address = await GeocodingService.getAddressFromCoordinates(_currentLocation!);
-      if (address != null && mounted) {
-        _locationController.text = address;
+      // Only set address if field is still empty (user hasn't typed)
+      // This prevents overwriting user input
+      if (mounted && _locationController.text.trim().isEmpty) {
+        final address = await GeocodingService.getAddressFromCoordinates(_currentLocation!);
+        // Filter out Google Maps default address
+        if (address != null && 
+            !address.toLowerCase().contains('amphitheatre') &&
+            !address.toLowerCase().contains('mountain view')) {
+          _locationController.text = address;
+        }
       }
     } catch (e) {
       // Location not available
     }
   }
 
+  Timer? _locationDebounceTimer;
+  
   Future<void> _onLocationChanged() async {
+    // Don't show suggestions if user is currently selecting one
+    if (_isSelectingSuggestion) {
+      return;
+    }
+    
     final locationText = _locationController.text.trim();
     
-    // Get suggestions for autocomplete
-    if (locationText.length >= 3) {
-      final suggestions = await GeocodingService.getAddressSuggestions(locationText);
-      if (mounted) {
-        setState(() {
-          _locationSuggestions = suggestions;
-          _showSuggestions = suggestions.isNotEmpty;
-        });
-      }
-    } else {
+    // Cancel previous timer
+    _locationDebounceTimer?.cancel();
+    
+    // Hide suggestions immediately if text is too short
+    if (locationText.length < 3) {
       if (mounted) {
         setState(() {
           _locationSuggestions = [];
           _showSuggestions = false;
         });
       }
+      return;
     }
     
-    // Debounce geocoding to avoid too many API calls
+    // Debounce suggestions to avoid too many API calls
+    _locationDebounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted || _isSelectingSuggestion) return;
+      
+      // Check if text hasn't changed
+      if (_locationController.text.trim() != locationText) return;
+      
+      // Get suggestions for autocomplete (only show, don't auto-select)
+      try {
+        final suggestions = await GeocodingService.getAddressSuggestions(locationText);
+        if (mounted && !_isSelectingSuggestion && _locationController.text.trim() == locationText) {
+          setState(() {
+            _locationSuggestions = suggestions;
+            _showSuggestions = suggestions.isNotEmpty;
+          });
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+    });
+    
+    // Don't do automatic geocoding - user must explicitly select from map or suggestions
+    // This prevents overwriting user input with wrong addresses
+  }
+  
+  void _selectLocationSuggestion(String suggestion) {
+    // Mark that we're selecting a suggestion to prevent onTapOutside from hiding it
+    _isSelectingSuggestion = true;
+    
+    // Cancel any pending debounce timer to prevent suggestions from reappearing
+    _locationDebounceTimer?.cancel();
+    
+    // Update the text field immediately
+    // Remove listener temporarily to prevent _onLocationChanged from triggering
+    _locationController.removeListener(_onLocationChanged);
+    _locationController.text = suggestion;
+    // Re-add listener after a short delay
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _locationController.addListener(_onLocationChanged);
+      }
+    });
+    
+    // Hide suggestions and clear list IMMEDIATELY
+    setState(() {
+      _showSuggestions = false;
+      _locationSuggestions = [];
+    });
+    
+    // Unfocus the text field to dismiss keyboard
+    _locationFocusNode.unfocus();
+    
+    // Reset the flag after a short delay
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _isSelectingSuggestion = false;
+      }
+    });
+    
+    // Geocode the selected suggestion
+    _geocodeLocation(suggestion);
+  }
+  
+  Future<void> _geocodeLocation(String address) async {
     if (_isGeocoding) return;
-    
-    if (locationText.length < 3) return; // Wait for at least 3 characters
-    
-    // Wait a bit before geocoding
-    await Future.delayed(const Duration(milliseconds: 800));
-    
-    // Check if text hasn't changed during delay
-    if (_locationController.text.trim() != locationText) return;
     
     setState(() {
       _isGeocoding = true;
     });
     
     try {
-      final coordinates = await GeocodingService.getCoordinatesFromAddress(locationText);
+      final coordinates = await GeocodingService.getCoordinatesFromAddress(address);
       if (coordinates != null && mounted) {
         setState(() {
           _latitude = coordinates.latitude;
@@ -162,16 +248,6 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
         });
       }
     }
-  }
-  
-  void _selectLocationSuggestion(String suggestion) {
-    setState(() {
-      _locationController.text = suggestion;
-      _showSuggestions = false;
-      _locationSuggestions = [];
-    });
-    // Trigger geocoding for selected suggestion
-    _onLocationChanged();
   }
 
   Future<void> _selectDate() async {
@@ -219,7 +295,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
       ),
     );
 
-    if (result != null) {
+    if (result != null && mounted) {
       setState(() {
         _latitude = result.latitude;
         _longitude = result.longitude;
@@ -227,9 +303,13 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
       });
       
       // Get address for selected location
+      // Only update if user explicitly selected a location from map
       final address = await GeocodingService.getAddressFromCoordinates(result);
       if (address != null && mounted) {
-        _locationController.text = address;
+        // User explicitly selected a location, so it's safe to update
+        setState(() {
+          _locationController.text = address;
+        });
       }
     }
   }
@@ -273,6 +353,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           jumpMethod: _selectedJumpMethod,
           equipmentIds: _selectedEquipmentIds.toList(),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+          freefallStats: _freefallStats,
         );
         await jumpNotifier.updateJump(updatedJump);
       } else {
@@ -286,6 +367,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           jumpMethod: _selectedJumpMethod,
           equipmentIds: _selectedEquipmentIds.toList(),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+          freefallStats: _freefallStats,
         );
       }
 
@@ -302,12 +384,115 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     }
   }
 
+  Widget _buildFreefallStatsDisplay(FreefallStats stats) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.flight_takeoff,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Freefall-Statistiken',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'GESPEICHERT',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[900],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (stats.freefallDurationSeconds != null)
+              _buildStatRow(
+                'Freefall-Dauer',
+                '${stats.freefallDurationSeconds!.toStringAsFixed(1)} s',
+                Icons.timer,
+              ),
+            if (stats.freefallDurationSeconds != null && stats.maxVerticalVelocityMs != null)
+              const SizedBox(height: 8),
+            if (stats.maxVerticalVelocityMs != null)
+              _buildStatRow(
+                'Max. Geschwindigkeit',
+                '${stats.maxVerticalVelocityKmh!.toStringAsFixed(1)} km/h',
+                Icons.speed,
+              ),
+            if (stats.maxVerticalVelocityMs != null && stats.exitTime != null)
+              const SizedBox(height: 8),
+            if (stats.exitTime != null)
+              _buildStatRow(
+                'Exit-Zeit',
+                DateFormat('HH:mm:ss').format(stats.exitTime!),
+                Icons.flight_takeoff,
+              ),
+            if (stats.exitTime != null && stats.deploymentTime != null)
+              const SizedBox(height: 8),
+            if (stats.deploymentTime != null)
+              _buildStatRow(
+                'Deployment-Zeit',
+                DateFormat('HH:mm:ss').format(stats.deploymentTime!),
+                Icons.paragliding,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
+    _locationDebounceTimer?.cancel();
     _locationController.removeListener(_onLocationChanged);
     _locationController.dispose();
     _altitudeController.dispose();
     _notesController.dispose();
+    _locationFocusNode.dispose();
     super.dispose();
   }
 
@@ -317,7 +502,22 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.jump != null ? 'Sprung bearbeiten' : 'Neuer Sprung'),
+        title: Text(widget.jump != null 
+            ? (_isEditingMode ? 'Sprung bearbeiten' : 'Sprung-Details')
+            : 'Neuer Sprung'),
+        actions: widget.jump != null && !_isEditingMode
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  tooltip: 'Editieren',
+                  onPressed: () {
+                    setState(() {
+                      _isEditingMode = true;
+                    });
+                  },
+                ),
+              ]
+            : null,
       ),
       body: Form(
         key: _formKey,
@@ -331,8 +531,8 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                   leading: const Icon(Icons.calendar_today),
                   title: const Text('Datum'),
                   subtitle: Text(DateFormat('dd.MM.yyyy').format(_selectedDate)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: _selectDate,
+                  trailing: _isEditingMode ? const Icon(Icons.chevron_right) : null,
+                  onTap: _isEditingMode ? _selectDate : null,
                 ),
               ),
               const SizedBox(height: 8),
@@ -341,8 +541,8 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                   leading: const Icon(Icons.access_time),
                   title: const Text('Uhrzeit'),
                   subtitle: Text(_selectedTime.format(context)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: _selectTime,
+                  trailing: _isEditingMode ? const Icon(Icons.chevron_right) : null,
+                  onTap: _isEditingMode ? _selectTime : null,
                 ),
               ),
               const SizedBox(height: 16),
@@ -353,11 +553,13 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                 children: [
                   TextFormField(
                     controller: _locationController,
+                    focusNode: _locationFocusNode,
+                    readOnly: !_isEditingMode,
                     decoration: InputDecoration(
                       labelText: 'Ort *',
                       border: const OutlineInputBorder(),
                       prefixIcon: const Icon(Icons.location_on),
-                      suffixIcon: _isGeocoding
+                      suffixIcon: _isGeocoding && _isEditingMode
                           ? const SizedBox(
                               width: 20,
                               height: 20,
@@ -368,30 +570,37 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                             )
                           : null,
                     ),
-                    validator: (value) {
+                    validator: _isEditingMode ? (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Bitte geben Sie einen Ort ein';
                       }
                       return null;
-                    },
-                    onTap: () {
+                    } : null,
+                    onTap: _isEditingMode ? () {
                       setState(() {
                         if (_locationController.text.length >= 3) {
                           _showSuggestions = _locationSuggestions.isNotEmpty;
                         }
                       });
-                    },
-                    onChanged: (value) {
+                    } : null,
+                    onChanged: _isEditingMode ? (value) {
                       _onLocationChanged();
-                    },
-                    onTapOutside: (event) {
-                      // Hide suggestions when tapping outside
-                      setState(() {
-                        _showSuggestions = false;
-                      });
-                    },
+                    } : null,
+                    onTapOutside: _isEditingMode ? (event) {
+                      // Only hide suggestions if user is not selecting a suggestion
+                      // Use a small delay to allow tap events on suggestions to process first
+                      if (!_isSelectingSuggestion) {
+                        Future.delayed(const Duration(milliseconds: 50), () {
+                          if (mounted && !_isSelectingSuggestion) {
+                            setState(() {
+                              _showSuggestions = false;
+                            });
+                          }
+                        });
+                      }
+                    } : null,
                   ),
-                  if (_showSuggestions && _locationSuggestions.isNotEmpty)
+                  if (_showSuggestions && _locationSuggestions.isNotEmpty && _isEditingMode)
                     Container(
                       margin: const EdgeInsets.only(top: 4),
                       decoration: BoxDecoration(
@@ -412,16 +621,18 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                         itemCount: _locationSuggestions.length,
                         itemBuilder: (context, index) {
                           final suggestion = _locationSuggestions[index];
-                          return ListTile(
-                            dense: true,
-                            leading: const Icon(Icons.location_on, size: 20),
-                            title: Text(
-                              suggestion,
-                              style: const TextStyle(fontSize: 14),
-                            ),
+                          return InkWell(
                             onTap: () {
                               _selectLocationSuggestion(suggestion);
                             },
+                            child: ListTile(
+                              dense: true,
+                              leading: const Icon(Icons.location_on, size: 20),
+                              title: Text(
+                                suggestion,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -433,7 +644,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
               // Map Selection Button
               Card(
                 child: InkWell(
-                  onTap: _openMapPicker,
+                  onTap: _isEditingMode ? _openMapPicker : null,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Row(
@@ -467,7 +678,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                             ],
                           ),
                         ),
-                        const Icon(Icons.chevron_right),
+                        if (_isEditingMode) const Icon(Icons.chevron_right),
                       ],
                     ),
                   ),
@@ -489,11 +700,11 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                     child: Text(type.displayName),
                   );
                 }).toList(),
-                onChanged: (value) {
+                onChanged: _isEditingMode ? (value) {
                   setState(() {
                     _selectedJumpType = value;
                   });
-                },
+                } : null,
               ),
               const SizedBox(height: 16),
               
@@ -511,24 +722,25 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                     child: Text(method.displayName),
                   );
                 }).toList(),
-                onChanged: (value) {
+                onChanged: _isEditingMode ? (value) {
                   setState(() {
                     _selectedJumpMethod = value;
                   });
-                },
+                } : null,
               ),
               const SizedBox(height: 16),
               
               // Altitude
               TextFormField(
                 controller: _altitudeController,
+                readOnly: !_isEditingMode,
                 decoration: const InputDecoration(
                   labelText: 'Höhe (m) *',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.height),
                 ),
                 keyboardType: TextInputType.number,
-                validator: (value) {
+                validator: _isEditingMode ? (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Bitte geben Sie eine Höhe ein';
                   }
@@ -536,7 +748,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                     return 'Bitte geben Sie eine gültige Höhe ein';
                   }
                   return null;
-                },
+                } : null,
               ),
               const SizedBox(height: 16),
               
@@ -621,8 +833,8 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                             ],
                           ),
                           value: _checklistItems[eq.id] ?? false,
-                          onChanged: (value) => _toggleEquipment(eq.id),
-                          enabled: isAvailableAtJumpDate || _selectedEquipmentIds.contains(eq.id),
+                          onChanged: _isEditingMode ? (value) => _toggleEquipment(eq.id) : null,
+                          enabled: _isEditingMode && (isAvailableAtJumpDate || _selectedEquipmentIds.contains(eq.id)),
                         );
                       }),
                       const SizedBox(height: 16),
@@ -632,10 +844,25 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stack) => Text('Fehler beim Laden: $error'),
               ),
+              const SizedBox(height: 16),
+              
+              // Freefall Detection (for new jumps) or Display (for existing jumps)
+              if (widget.jump == null)
+                FreefallDetectionWidget(
+                  onStatsUpdated: (stats) {
+                    setState(() {
+                      _freefallStats = stats;
+                    });
+                  },
+                )
+              else if (_freefallStats != null && _freefallStats!.hasData)
+                _buildFreefallStatsDisplay(_freefallStats!),
+              const SizedBox(height: 16),
               
               // Notes
               TextFormField(
                 controller: _notesController,
+                readOnly: !_isEditingMode,
                 decoration: const InputDecoration(
                   labelText: 'Notizen',
                   border: OutlineInputBorder(),
@@ -643,16 +870,18 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                 ),
                 maxLines: 3,
               ),
-              const SizedBox(height: 24),
-              
-              // Save Button
-              ElevatedButton(
-                onPressed: _saveJump,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+              if (_isEditingMode) ...[
+                const SizedBox(height: 24),
+                
+                // Save Button (only in editing mode)
+                ElevatedButton(
+                  onPressed: _saveJump,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text(widget.jump != null ? 'Änderungen speichern' : 'Sprung speichern'),
                 ),
-                child: Text(widget.jump != null ? 'Änderungen speichern' : 'Sprung speichern'),
-              ),
+              ],
             ],
           ),
         ),

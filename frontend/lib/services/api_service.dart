@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/jump.dart';
 import '../models/equipment.dart';
 import '../models/profile.dart';
+import '../models/freefall_stats.dart';
 import '../config/api_config.dart';
 
 class ApiService {
@@ -214,6 +216,7 @@ class ApiService {
     JumpMethod? jumpMethod,
     List<String> equipmentIds = const [],
     String? notes,
+    FreefallStats? freefallStats,
   }) async {
     final jumpMap = {
       'date': date.toIso8601String(),
@@ -225,6 +228,7 @@ class ApiService {
       'jump_method': jumpMethod?.toString().split('.').last.toLowerCase(),
       'equipment_ids': equipmentIds,
       'notes': notes,
+      if (freefallStats != null) 'freefall_stats': freefallStats.toMap(),
     };
     final data = await _post('/jumps/', jumpMap) as Map<String, dynamic>;
     return Jump.fromMap(data);
@@ -241,6 +245,7 @@ class ApiService {
       'jump_method': jump.jumpMethod?.toString().split('.').last.toLowerCase(),
       'equipment_ids': jump.equipmentIds,
       'notes': jump.notes,
+      if (jump.freefallStats != null) 'freefall_stats': jump.freefallStats!.toMap(),
     };
     final data = await _put('/jumps/${jump.id}', jumpMap) as Map<String, dynamic>;
     return Jump.fromMap(data);

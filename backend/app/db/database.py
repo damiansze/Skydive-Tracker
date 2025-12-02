@@ -88,6 +88,26 @@ def init_db():
                     cursor.execute("ALTER TABLE profiles ADD COLUMN profile_picture_url VARCHAR")
                     conn.commit()
                 
+                # Check and add freefall_stats columns to jumps table
+                cursor.execute("PRAGMA table_info(jumps)")
+                columns = [column[1] for column in cursor.fetchall()]
+                
+                freefall_columns = {
+                    'freefall_duration_seconds': 'REAL',
+                    'max_vertical_velocity_ms': 'REAL',
+                    'exit_time': 'DATETIME',
+                    'deployment_time': 'DATETIME',
+                }
+                
+                for col_name, col_type in freefall_columns.items():
+                    if col_name not in columns:
+                        try:
+                            cursor.execute(f"ALTER TABLE jumps ADD COLUMN {col_name} {col_type}")
+                            conn.commit()
+                        except sqlite3.OperationalError as e:
+                            if "duplicate column" not in str(e).lower():
+                                raise
+                
                 conn.close()
     except Exception as e:
         # Migration errors are not critical - log but don't fail

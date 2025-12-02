@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/equipment.dart';
 import '../providers/equipment_provider.dart';
 import 'add_equipment_screen.dart';
+import 'settings_screen.dart';
 
 class EquipmentScreen extends ConsumerWidget {
   const EquipmentScreen({super.key});
@@ -120,6 +121,20 @@ class EquipmentScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Equipment'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Einstellungen',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: equipmentAsync.when(
         data: (equipment) {

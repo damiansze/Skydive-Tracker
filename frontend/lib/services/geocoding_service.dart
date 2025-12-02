@@ -26,7 +26,18 @@ class GeocodingService {
           parts.add(placemark.country!);
         }
         
-        return parts.isNotEmpty ? parts.join(', ') : null;
+        final address = parts.isNotEmpty ? parts.join(', ') : null;
+        
+        // Filter out Google Maps default address (1600 Amphitheatre Pkwy, Mountain View, United States)
+        if (address != null) {
+          final lowerAddress = address.toLowerCase();
+          if (lowerAddress.contains('amphitheatre') && 
+              lowerAddress.contains('mountain view')) {
+            return null; // Don't return Google Maps default address
+          }
+        }
+        
+        return address;
       }
       return null;
     } catch (e) {
@@ -83,8 +94,13 @@ class GeocodingService {
           
           if (parts.isNotEmpty) {
             final address = parts.join(', ');
-            if (!suggestions.contains(address)) {
-              suggestions.add(address);
+            // Filter out Google Maps default address
+            final lowerAddress = address.toLowerCase();
+            if (!(lowerAddress.contains('amphitheatre') && 
+                  lowerAddress.contains('mountain view'))) {
+              if (!suggestions.contains(address)) {
+                suggestions.add(address);
+              }
             }
           }
         }

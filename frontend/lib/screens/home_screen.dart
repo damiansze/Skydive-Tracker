@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'home_screen_new.dart';
 import 'statistics_screen.dart';
 import 'equipment_screen.dart';
-import 'settings_screen.dart';
 import 'add_jump_screen.dart';
 import 'add_equipment_screen.dart';
 import '../providers/jump_provider.dart';
@@ -72,10 +71,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // New order: Statistics (Home), Equipment, License/Achievements
     final List<Widget> screens = [
-      const HomeScreenNew(),
       const StatisticsScreen(),
       const EquipmentScreen(),
+      const HomeScreenNew(),
     ];
 
     return Scaffold(
@@ -107,7 +107,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             IconButton(
               icon: Icon(
-                Icons.bar_chart,
+                Icons.shopping_bag,
                 color: _selectedIndex == 1
                     ? Theme.of(context).colorScheme.primary
                     : Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
@@ -120,7 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             IconButton(
               icon: Icon(
-                Icons.shopping_bag,
+                Icons.emoji_events,
                 color: _selectedIndex == 2
                     ? Theme.of(context).colorScheme.primary
                     : Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
@@ -129,20 +129,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 setState(() {
                   _selectedIndex = 2;
                 });
-              },
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.settings,
-                color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(),
-                  ),
-                );
               },
             ),
           ],

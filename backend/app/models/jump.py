@@ -43,6 +43,12 @@ class Jump(Base):
     checklist_completed = Column(Boolean, default=False)
     notes = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Freefall statistics
+    freefall_duration_seconds = Column(Float, nullable=True)
+    max_vertical_velocity_ms = Column(Float, nullable=True)
+    exit_time = Column(DateTime(timezone=True), nullable=True)
+    deployment_time = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     equipment = relationship("Equipment", secondary=jump_equipment, backref="jumps")
