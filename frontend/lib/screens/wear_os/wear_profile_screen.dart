@@ -47,12 +47,12 @@ class WearProfileScreen extends ConsumerWidget {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -62,59 +62,53 @@ class WearProfileScreen extends ConsumerWidget {
             ],
           ),
         ),
-        child: Column(
+        child: Row(
           children: [
-            // Profile Picture
+            // Profile Picture - smaller
             CircleAvatar(
-              radius: 28,
+              radius: 20,
               backgroundColor: Colors.white,
               backgroundImage: profile.profilePictureUrl != null
                   ? NetworkImage(ApiConfig.buildAssetUrl(profile.profilePictureUrl!))
                   : null,
               child: profile.profilePictureUrl == null
-                  ? Icon(Icons.person, size: 28, color: Theme.of(context).colorScheme.primary)
+                  ? Icon(Icons.person, size: 18, color: Theme.of(context).colorScheme.primary)
                   : null,
             ),
-            const SizedBox(height: 8),
-            
-            // Name
-            Text(
-              profile.name,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Name
+                  Text(
+                    profile.name,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // License + Jumps in one row
+                  Row(
+                    children: [
+                      if (profile.licenseType != null) ...[
+                        Text(
+                          profile.licenseType!,
+                          style: const TextStyle(fontSize: 9, color: Colors.white70),
+                        ),
+                        const Text(' • ', style: TextStyle(fontSize: 9, color: Colors.white70)),
+                      ],
+                      Text(
+                        '${profile.totalJumps} Sprünge',
+                        style: const TextStyle(fontSize: 9, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
-            
-            // License
-            if (profile.licenseType != null)
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  profile.licenseType!,
-                  style: const TextStyle(fontSize: 10, color: Colors.white),
-                ),
-              ),
-            
-            // Total Jumps
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.paragliding, size: 16, color: Colors.white70),
-                const SizedBox(width: 4),
-                Text(
-                  '${profile.totalJumps} Sprünge',
-                  style: const TextStyle(fontSize: 12, color: Colors.white),
-                ),
-              ],
             ),
           ],
         ),
@@ -126,25 +120,26 @@ class WearProfileScreen extends ConsumerWidget {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.person_outline,
-              size: 32,
+              size: 20,
               color: Theme.of(context).colorScheme.outline,
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Kein Profil',
-              style: TextStyle(fontSize: 12),
-            ),
-            const Text(
-              'In App erstellen',
-              style: TextStyle(fontSize: 10),
+            const SizedBox(width: 8),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Kein Profil', style: TextStyle(fontSize: 10)),
+                Text('In App erstellen', style: TextStyle(fontSize: 8)),
+              ],
             ),
           ],
         ),
@@ -159,21 +154,21 @@ class WearProfileScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section Title
+        // Section Title - compact
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
           child: Row(
             children: [
-              const Icon(Icons.emoji_events, size: 14, color: Colors.amber),
-              const SizedBox(width: 4),
+              const Icon(Icons.emoji_events, size: 12, color: Colors.amber),
+              const SizedBox(width: 2),
               const Text(
                 'Achievements',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               Text(
                 '${unlocked.length}/${achievements.length}',
-                style: const TextStyle(fontSize: 10),
+                style: const TextStyle(fontSize: 9),
               ),
             ],
           ),
@@ -182,16 +177,16 @@ class WearProfileScreen extends ConsumerWidget {
         // Unlocked Achievements
         if (unlocked.isNotEmpty) ...[
           _buildAchievementGrid(context, unlocked, true),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
         ],
         
         // Locked Achievements
         if (locked.isNotEmpty) ...[
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: 2, vertical: 2),
             child: Text(
-              'Noch nicht erreicht',
-              style: TextStyle(fontSize: 10, color: Colors.grey),
+              'Gesperrt',
+              style: TextStyle(fontSize: 8, color: Colors.grey),
             ),
           ),
           _buildAchievementGrid(context, locked, false),
@@ -205,9 +200,9 @@ class WearProfileScreen extends ConsumerWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 4,
-        mainAxisSpacing: 4,
+        crossAxisCount: 4,
+        crossAxisSpacing: 2,
+        mainAxisSpacing: 2,
         childAspectRatio: 1,
       ),
       itemCount: achievements.length,
@@ -216,30 +211,22 @@ class WearProfileScreen extends ConsumerWidget {
         return GestureDetector(
           onTap: () => _showAchievementDetail(context, achievement),
           child: Card(
-            elevation: unlocked ? 2 : 0,
+            elevation: unlocked ? 1 : 0,
             color: unlocked ? null : Colors.grey[300],
+            margin: EdgeInsets.zero,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
             ),
             child: Opacity(
               opacity: unlocked ? 1.0 : 0.5,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      achievement.icon,
-                      style: const TextStyle(fontSize: 20),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      achievement.title,
-                      style: const TextStyle(fontSize: 8),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+              child: Padding(
+                padding: const EdgeInsets.all(2),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    achievement.icon,
+                    style: const TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
             ),
@@ -253,34 +240,35 @@ class WearProfileScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        contentPadding: const EdgeInsets.all(16),
+        contentPadding: const EdgeInsets.all(10),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(achievement.icon, style: const TextStyle(fontSize: 32)),
-            const SizedBox(height: 8),
-            Text(
-              achievement.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
+            Text(achievement.icon, style: const TextStyle(fontSize: 24)),
             const SizedBox(height: 4),
             Text(
+              achievement.title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
               achievement.description,
-              style: const TextStyle(fontSize: 11),
+              style: const TextStyle(fontSize: 9),
               textAlign: TextAlign.center,
             ),
             if (!achievement.unlocked && achievement.requirement != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   achievement.requirement!,
-                  style: const TextStyle(fontSize: 10),
+                  style: const TextStyle(fontSize: 8),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -290,7 +278,8 @@ class WearProfileScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: const Text('OK', style: TextStyle(fontSize: 10)),
           ),
         ],
       ),

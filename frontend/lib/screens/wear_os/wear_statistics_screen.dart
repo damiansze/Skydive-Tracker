@@ -41,14 +41,14 @@ class WearStatisticsScreen extends ConsumerWidget {
           children: [
             Icon(
               Icons.paragliding,
-              size: 48,
+              size: 32,
               color: Theme.of(context).colorScheme.outline,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             const Text(
-              'Noch keine\nSprünge',
+              'Keine Sprünge',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14),
+              style: TextStyle(fontSize: 10),
             ),
           ],
         ),
@@ -71,9 +71,9 @@ class WearStatisticsScreen extends ConsumerWidget {
     final recentJump = jumps.first;
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       children: [
-        // Main stats in circular cards
+        // Main stats in circular cards - smaller
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -91,11 +91,11 @@ class WearStatisticsScreen extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         
-        // Additional stats
+        // Additional stats - compact
         WearCard(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(6),
           child: Column(
             children: [
               _buildStatRow(
@@ -112,37 +112,31 @@ class WearStatisticsScreen extends ConsumerWidget {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         
         // Jump type distribution
         _buildJumpTypeDistribution(context, jumps),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         
-        // Recent jump
+        // Recent jump - compact
         WearCard(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.all(6),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.history, size: 14),
-                  const SizedBox(width: 4),
-                  const Text(
-                    'Letzter Sprung',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                DateFormat('dd.MM.yy').format(recentJump.date),
-                style: const TextStyle(fontSize: 12),
-              ),
-              Text(
-                recentJump.location,
-                style: const TextStyle(fontSize: 10),
-                overflow: TextOverflow.ellipsis,
+              const Icon(Icons.history, size: 12),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${DateFormat('dd.MM.yy').format(recentJump.date)} • ${recentJump.location}',
+                      style: const TextStyle(fontSize: 9),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -158,8 +152,8 @@ class WearStatisticsScreen extends ConsumerWidget {
     required Color color,
   }) {
     return Container(
-      width: 80,
-      height: 80,
+      width: 56,
+      height: 56,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
@@ -170,8 +164,8 @@ class WearStatisticsScreen extends ConsumerWidget {
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -181,7 +175,7 @@ class WearStatisticsScreen extends ConsumerWidget {
           Text(
             value,
             style: const TextStyle(
-              fontSize: 24,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
@@ -189,7 +183,7 @@ class WearStatisticsScreen extends ConsumerWidget {
           Text(
             label,
             style: const TextStyle(
-              fontSize: 10,
+              fontSize: 8,
               color: Colors.white,
             ),
           ),
@@ -200,17 +194,17 @@ class WearStatisticsScreen extends ConsumerWidget {
 
   Widget _buildStatRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 1),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: Colors.grey),
-          const SizedBox(width: 6),
+          Icon(icon, size: 10, color: Colors.grey),
+          const SizedBox(width: 4),
           Expanded(
-            child: Text(label, style: const TextStyle(fontSize: 11)),
+            child: Text(label, style: const TextStyle(fontSize: 9)),
           ),
           Text(
             value,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -228,28 +222,28 @@ class WearStatisticsScreen extends ConsumerWidget {
     if (typeCounts.isEmpty) return const SizedBox.shrink();
 
     return WearCard(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Sprungtypen',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            'Typen',
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Wrap(
-            spacing: 4,
-            runSpacing: 4,
+            spacing: 2,
+            runSpacing: 2,
             children: typeCounts.entries.map((entry) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   '${entry.key.displayName}: ${entry.value}',
-                  style: const TextStyle(fontSize: 9),
+                  style: const TextStyle(fontSize: 7),
                 ),
               );
             }).toList(),

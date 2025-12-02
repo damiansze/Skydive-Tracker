@@ -14,10 +14,10 @@ class WearSettingsScreen extends ConsumerWidget {
     final timeFormat = ref.watch(timeFormatProvider);
 
     return WearScaffold(
-      title: 'Einstellungen',
+      title: 'Settings',
       showBackButton: true,
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         children: [
           // Theme
           _buildSettingCard(
@@ -27,7 +27,7 @@ class WearSettingsScreen extends ConsumerWidget {
             value: _getThemeModeText(themeMode),
             onTap: () => _showThemeDialog(context, ref, themeMode),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           
           // Metric
           _buildSettingCard(
@@ -37,40 +37,37 @@ class WearSettingsScreen extends ConsumerWidget {
             value: metric == 'metric' ? 'Metrisch' : 'Imperial',
             onTap: () => _showMetricDialog(context, ref, metric),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           
           // Time Format
           _buildSettingCard(
             context,
             icon: Icons.access_time,
-            title: 'Zeitformat',
+            title: 'Zeit',
             value: timeFormat == '24h' ? '24h' : '12h',
             onTap: () => _showTimeFormatDialog(context, ref, timeFormat),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           
-          // Info
+          // Info - compact
           Card(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
+              padding: const EdgeInsets.all(6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.info_outline,
-                    size: 20,
+                    size: 12,
                     color: Theme.of(context).colorScheme.outline,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(width: 4),
                   const Text(
-                    'Skydive Tracker',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                  const Text(
-                    'v1.0.0 WearOS',
-                    style: TextStyle(fontSize: 10),
+                    'Skydive v1.0 WearOS',
+                    style: TextStyle(fontSize: 8),
                   ),
                 ],
               ),
@@ -90,36 +87,36 @@ class WearSettingsScreen extends ConsumerWidget {
   }) {
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(8),
           child: Row(
             children: [
-              Icon(icon, size: 20),
-              const SizedBox(width: 8),
+              Icon(icon, size: 14),
+              const SizedBox(width: 6),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       value,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 8,
                         color: Theme.of(context).colorScheme.outline,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 16),
+              const Icon(Icons.chevron_right, size: 12),
             ],
           ),
         ),
@@ -142,7 +139,8 @@ class WearSettingsScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -183,7 +181,8 @@ class WearSettingsScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -215,13 +214,14 @@ class WearSettingsScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildDialogOption(
               context,
-              title: '24 Stunden',
+              title: '24h',
               selected: current == '24h',
               onTap: () {
                 ref.read(timeFormatProvider.notifier).setTimeFormat('24h');
@@ -230,7 +230,7 @@ class WearSettingsScreen extends ConsumerWidget {
             ),
             _buildDialogOption(
               context,
-              title: '12 Stunden (AM/PM)',
+              title: '12h (AM/PM)',
               selected: current == '12h',
               onTap: () {
                 ref.read(timeFormatProvider.notifier).setTimeFormat('12h');
@@ -252,19 +252,19 @@ class WearSettingsScreen extends ConsumerWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         child: Row(
           children: [
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              size: 18,
+              size: 14,
               color: selected ? Theme.of(context).colorScheme.primary : null,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Text(
               title,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 10,
                 fontWeight: selected ? FontWeight.bold : null,
               ),
             ),

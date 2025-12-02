@@ -38,20 +38,20 @@ class WearScaffold extends StatelessWidget {
               padding: EdgeInsets.all(roundPadding),
               child: Column(
                 children: [
-                  // Title bar if provided
+                  // Title bar if provided - compact for WearOS
                   if (title != null || showBackButton)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.only(bottom: 4),
                       child: Row(
                         children: [
                           if (showBackButton)
                             IconButton(
-                              icon: const Icon(Icons.arrow_back, size: 20),
+                              icon: const Icon(Icons.arrow_back, size: 16),
                               onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(
-                                minWidth: 32,
-                                minHeight: 32,
+                                minWidth: 24,
+                                minHeight: 24,
                               ),
                             ),
                           if (title != null)
@@ -59,7 +59,7 @@ class WearScaffold extends StatelessWidget {
                               child: Text(
                                 title!,
                                 style: const TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
                                 textAlign: showBackButton ? TextAlign.left : TextAlign.center,

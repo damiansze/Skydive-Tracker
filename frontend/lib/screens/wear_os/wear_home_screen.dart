@@ -15,28 +15,30 @@ class WearHomeScreen extends ConsumerWidget {
     final size = MediaQuery.of(context).size;
     final centerX = size.width / 2;
     final centerY = size.height / 2;
-    final radius = (size.width < size.height ? size.width : size.height) * 0.32;
+    // Smaller radius and button size for WearOS
+    final radius = (size.width < size.height ? size.width : size.height) * 0.28;
+    const buttonSize = 40.0;
+    const buttonHalf = buttonSize / 2;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Stack(
           children: [
-            // Center logo/title
+            // Center logo/title - smaller for WearOS
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.paragliding,
-                    size: 48,
+                    size: 28,
                     color: Theme.of(context).colorScheme.primary,
                   ),
-                  const SizedBox(height: 4),
                   Text(
                     'Skydive',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.primary,
                     ),
@@ -48,10 +50,11 @@ class WearHomeScreen extends ConsumerWidget {
             // Top - New Jump
             _buildMenuButton(
               context,
-              position: Offset(centerX - 28, centerY - radius - 28),
+              position: Offset(centerX - buttonHalf, centerY - radius - buttonHalf),
               icon: Icons.add,
-              label: 'Sprung',
+              label: 'Neu',
               color: Colors.green,
+              buttonSize: buttonSize,
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const WearAddJumpScreen()),
@@ -61,10 +64,11 @@ class WearHomeScreen extends ConsumerWidget {
             // Right - Statistics
             _buildMenuButton(
               context,
-              position: Offset(centerX + radius - 28, centerY - 28),
+              position: Offset(centerX + radius - buttonHalf, centerY - buttonHalf),
               icon: Icons.bar_chart,
               label: 'Stats',
               color: Colors.blue,
+              buttonSize: buttonSize,
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const WearStatisticsScreen()),
@@ -74,10 +78,11 @@ class WearHomeScreen extends ConsumerWidget {
             // Bottom - Profile/Achievements
             _buildMenuButton(
               context,
-              position: Offset(centerX - 28, centerY + radius - 28),
+              position: Offset(centerX - buttonHalf, centerY + radius - buttonHalf),
               icon: Icons.emoji_events,
               label: 'Profil',
               color: Colors.orange,
+              buttonSize: buttonSize,
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const WearProfileScreen()),
@@ -87,10 +92,11 @@ class WearHomeScreen extends ConsumerWidget {
             // Left - Settings
             _buildMenuButton(
               context,
-              position: Offset(centerX - radius - 28, centerY - 28),
+              position: Offset(centerX - radius - buttonHalf, centerY - buttonHalf),
               icon: Icons.settings,
-              label: 'Settings',
+              label: 'Setup',
               color: Colors.grey,
+              buttonSize: buttonSize,
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const WearSettingsScreen()),
@@ -108,6 +114,7 @@ class WearHomeScreen extends ConsumerWidget {
     required IconData icon,
     required String label,
     required Color color,
+    required double buttonSize,
     required VoidCallback onTap,
   }) {
     return Positioned(
@@ -119,13 +126,12 @@ class WearHomeScreen extends ConsumerWidget {
           WearButton(
             onPressed: onTap,
             backgroundColor: color,
-            size: 56,
-            child: Icon(icon, color: Colors.white, size: 28),
+            size: buttonSize,
+            child: Icon(icon, color: Colors.white, size: buttonSize * 0.45),
           ),
-          const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(fontSize: 10),
+            style: const TextStyle(fontSize: 8),
           ),
         ],
       ),
