@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'screens/home_screen.dart';
+import 'screens/wear_os/wear_home_screen.dart';
 import 'screens/settings_screen.dart';
+import 'services/wear_os_service.dart';
 
 void main() {
   runApp(
@@ -32,7 +34,7 @@ class MyApp extends ConsumerWidget {
         useMaterial3: true,
       ),
       themeMode: themeMode,
-      home: const HomeScreen(),
+      home: const AdaptiveHomeScreen(),
       debugShowCheckedModeBanner: false,
       // Ensure keyboard doesn't block content
       builder: (context, child) {
@@ -43,6 +45,32 @@ class MyApp extends ConsumerWidget {
           ),
           child: child!,
         );
+      },
+    );
+  }
+}
+
+/// Adaptive home screen that detects screen size and shows appropriate UI
+class AdaptiveHomeScreen extends StatelessWidget {
+  const AdaptiveHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final screenHeight = constraints.maxHeight;
+        
+        // Check if we should use WearOS layout (small round screen)
+        final isWatchLayout = WearOSService.shouldUseWatchLayout(screenWidth, screenHeight);
+        
+        if (isWatchLayout) {
+          // WearOS / Small round screen layout
+          return const WearHomeScreen();
+        } else {
+          // Normal phone/tablet layout
+          return const HomeScreen();
+        }
       },
     );
   }
