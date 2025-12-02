@@ -1,21 +1,21 @@
 """Weather schemas for API validation"""
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime as dt
 
 
 class WeatherData(BaseModel):
     """Weather data model for a jump location and time"""
-    temperature_celsius: Optional[float] = Field(None, description="Temperature in Celsius")
-    wind_speed_kmh: Optional[float] = Field(None, description="Wind speed in km/h")
-    wind_direction_degrees: Optional[int] = Field(None, ge=0, lt=360, description="Wind direction in degrees (0-359)")
-    wind_gusts_kmh: Optional[float] = Field(None, description="Wind gusts in km/h")
-    weather_code: Optional[int] = Field(None, description="WMO weather code")
-    weather_description: Optional[str] = Field(None, description="Human readable weather description")
-    humidity_percent: Optional[int] = Field(None, ge=0, le=100, description="Relative humidity in percent")
-    pressure_hpa: Optional[float] = Field(None, description="Surface pressure in hPa")
-    cloud_cover_percent: Optional[int] = Field(None, ge=0, le=100, description="Cloud cover in percent")
-    visibility_km: Optional[float] = Field(None, description="Visibility in kilometers")
+    temperature_celsius: Optional[float] = Field(default=None, description="Temperature in Celsius")
+    wind_speed_kmh: Optional[float] = Field(default=None, description="Wind speed in km/h")
+    wind_direction_degrees: Optional[int] = Field(default=None, ge=0, lt=360, description="Wind direction in degrees (0-359)")
+    wind_gusts_kmh: Optional[float] = Field(default=None, description="Wind gusts in km/h")
+    weather_code: Optional[int] = Field(default=None, description="WMO weather code")
+    weather_description: Optional[str] = Field(default=None, description="Human readable weather description")
+    humidity_percent: Optional[int] = Field(default=None, ge=0, le=100, description="Relative humidity in percent")
+    pressure_hpa: Optional[float] = Field(default=None, description="Surface pressure in hPa")
+    cloud_cover_percent: Optional[int] = Field(default=None, ge=0, le=100, description="Cloud cover in percent")
+    visibility_km: Optional[float] = Field(default=None, description="Visibility in kilometers")
 
     @staticmethod
     def get_wind_direction_name(degrees: Optional[int]) -> Optional[str]:
@@ -70,7 +70,11 @@ class WeatherRequest(BaseModel):
     """Request model for fetching weather data"""
     latitude: float = Field(..., ge=-90, le=90, description="Latitude")
     longitude: float = Field(..., ge=-180, le=180, description="Longitude")
-    datetime: datetime = Field(..., description="Date and time for weather data")
+    target_datetime: dt = Field(..., alias="datetime", description="Date and time for weather data")
+    
+    model_config = {
+        "populate_by_name": True,
+    }
 
 
 class WeatherResponse(BaseModel):
@@ -78,4 +82,3 @@ class WeatherResponse(BaseModel):
     weather: Optional[WeatherData] = None
     success: bool = True
     error: Optional[str] = None
-

@@ -34,13 +34,13 @@ async def get_weather(request: WeatherRequest):
             "event": "weather_request",
             "latitude": request.latitude,
             "longitude": request.longitude,
-            "datetime": request.datetime.isoformat(),
+            "datetime": request.target_datetime.isoformat(),
         }
     )
     
     return await WeatherService.get_weather_for_location(
         latitude=request.latitude,
         longitude=request.longitude,
-        target_datetime=request.datetime,
+        target_datetime=request.target_datetime,
     )
 
