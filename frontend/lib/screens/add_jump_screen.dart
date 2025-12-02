@@ -72,6 +72,22 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     _locationController.addListener(_onLocationChanged);
   }
 
+  String _formatTime(TimeOfDay time) {
+    final timeFormat = ref.read(timeFormatProvider);
+    if (timeFormat == '24h') {
+      // 24-hour format: HH:mm
+      final hour = time.hour.toString().padLeft(2, '0');
+      final minute = time.minute.toString().padLeft(2, '0');
+      return '$hour:$minute';
+    } else {
+      // 12-hour format with AM/PM
+      final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+      final minute = time.minute.toString().padLeft(2, '0');
+      final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+      return '$hour:$minute $period';
+    }
+  }
+
   void _loadJumpData() {
     final jump = widget.jump!;
     _selectedDate = jump.date;
@@ -850,7 +866,7 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
                 child: ListTile(
                   leading: const Icon(Icons.access_time),
                   title: const Text('Uhrzeit'),
-                  subtitle: Text(_selectedTime.format(context)),
+                  subtitle: Text(_formatTime(_selectedTime)),
                   trailing: _isEditingMode ? const Icon(Icons.chevron_right) : null,
                   onTap: _isEditingMode ? _selectTime : null,
                 ),

@@ -58,7 +58,11 @@ class WeatherService:
                     "latitude": latitude,
                     "longitude": longitude,
                     "target_datetime": target_datetime.isoformat(),
+                    "target_date": str(target_date),
+                    "target_hour": target_datetime.hour,
+                    "target_minute": target_datetime.minute,
                     "days_diff": days_diff,
+                    "has_tzinfo": target_datetime.tzinfo is not None,
                 }
             )
             
@@ -87,6 +91,7 @@ class WeatherService:
                         "event": "weather_fetch_success",
                         "temperature": weather_data.temperature_celsius,
                         "wind_speed": weather_data.wind_speed_kmh,
+                        "wind_direction": weather_data.wind_direction_degrees,
                     }
                 )
                 return WeatherResponse(weather=weather_data, success=True)
@@ -158,6 +163,18 @@ class WeatherService:
             response.raise_for_status()
             data = response.json()
         
+        # Log the timezone info from API response
+        logger.info(
+            "Forecast API response",
+            extra={
+                "event": "weather_forecast_response",
+                "timezone": data.get("timezone"),
+                "timezone_abbreviation": data.get("timezone_abbreviation"),
+                "utc_offset_seconds": data.get("utc_offset_seconds"),
+                "times_count": len(data.get("hourly", {}).get("time", [])),
+            }
+        )
+        
         return WeatherService._extract_hourly_weather(data, target_datetime, has_visibility=True)
     
     @staticmethod
@@ -201,6 +218,9 @@ class WeatherService:
             "Archive API response received",
             extra={
                 "event": "weather_archive_response",
+                "timezone": data.get("timezone"),
+                "timezone_abbreviation": data.get("timezone_abbreviation"),
+                "utc_offset_seconds": data.get("utc_offset_seconds"),
                 "has_hourly": "hourly" in data,
                 "hourly_keys": list(data.get("hourly", {}).keys()) if "hourly" in data else [],
             }
@@ -230,17 +250,30 @@ class WeatherService:
             )
             return None
         
-        # Find the closest hour to target time
+        # Get target hour from the datetime
         target_hour = target_datetime.hour
+        
+        # Log available times for debugging
+        logger.info(
+            "Searching for matching hour",
+            extra={
+                "event": "weather_hour_search",
+                "target_hour": target_hour,
+                "available_times_sample": times[:3] if len(times) >= 3 else times,
+                "total_times": len(times),
+            }
+        )
         
         # Try to find exact hour match
         best_index = None
+        matched_time = None
         for i, time_str in enumerate(times):
             # Parse the time string (format: "2024-01-15T14:00")
             try:
                 time_dt = datetime.fromisoformat(time_str)
                 if time_dt.hour == target_hour:
                     best_index = i
+                    matched_time = time_str
                     break
             except ValueError:
                 continue
@@ -253,15 +286,27 @@ class WeatherService:
                     time_dt = datetime.fromisoformat(time_str)
                     if time_dt.hour == 12:
                         best_index = i
+                        matched_time = time_str
                         break
                 except ValueError:
                     continue
             # If still no match, use first available
             if best_index is None:
                 best_index = 0
+                matched_time = times[0]
         
         if best_index is None:
             return None
+        
+        logger.info(
+            "Found matching time slot",
+            extra={
+                "event": "weather_time_matched",
+                "target_hour": target_hour,
+                "matched_time": matched_time,
+                "matched_index": best_index,
+            }
+        )
         
         # Extract weather data at this index
         def safe_get(key: str, index: int):
@@ -290,17 +335,30 @@ class WeatherService:
             "Extracted weather data",
             extra={
                 "event": "weather_extracted",
+                "matched_time": matched_time,
                 "index": best_index,
                 "temperature": temperature,
                 "wind_speed": wind_speed,
+                "wind_direction": wind_direction,
+                "wind_gusts": wind_gusts,
                 "weather_code": weather_code,
+                "humidity": humidity,
+                "pressure": pressure,
+                "cloud_cover": cloud_cover,
             }
         )
+        
+        # Normalize wind direction: 360° = 0° (both are North)
+        wind_direction_normalized = None
+        if wind_direction is not None:
+            wind_direction_int = int(wind_direction)
+            # Normalize 360 to 0 (both mean North)
+            wind_direction_normalized = wind_direction_int % 360
         
         return WeatherData(
             temperature_celsius=temperature,
             wind_speed_kmh=wind_speed,
-            wind_direction_degrees=int(wind_direction) if wind_direction is not None else None,
+            wind_direction_degrees=wind_direction_normalized,
             wind_gusts_kmh=wind_gusts,
             weather_code=weather_code,
             weather_description=weather_description,

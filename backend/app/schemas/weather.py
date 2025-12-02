@@ -8,7 +8,7 @@ class WeatherData(BaseModel):
     """Weather data model for a jump location and time"""
     temperature_celsius: Optional[float] = Field(default=None, description="Temperature in Celsius")
     wind_speed_kmh: Optional[float] = Field(default=None, description="Wind speed in km/h")
-    wind_direction_degrees: Optional[int] = Field(default=None, ge=0, lt=360, description="Wind direction in degrees (0-359)")
+    wind_direction_degrees: Optional[int] = Field(default=None, ge=0, le=360, description="Wind direction in degrees (0-360, where 360=North)")
     wind_gusts_kmh: Optional[float] = Field(default=None, description="Wind gusts in km/h")
     weather_code: Optional[int] = Field(default=None, description="WMO weather code")
     weather_description: Optional[str] = Field(default=None, description="Human readable weather description")
