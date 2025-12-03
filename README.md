@@ -1,188 +1,295 @@
-# Skydive Tracker
+# 🪂 Skydive Tracker
 
-Eine mobile App zur Erfassung, Verwaltung und Analyse von Fallschirmsprüngen für Android und iOS.
+<div align="center">
 
-## Projektstruktur
+![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 
-Das Projekt ist in zwei Hauptkomponenten aufgeteilt:
+**Eine umfassende App zur Erfassung, Verwaltung und Analyse von Fallschirmsprüngen**
+
+*Verfügbar für Android, iOS und WearOS*
+
+</div>
+
+---
+
+## ✨ Features
+
+### 📱 Mobile App (Android & iOS)
+- **Sprungerfassung** – Erfasse Sprünge mit Datum, Zeit, Ort (GPS & Kartenauswahl), Höhe und Sprungtyp
+- **Wetter-Integration** – Automatischer Abruf von Wetterdaten (Temperatur, Wind, Luftfeuchtigkeit) via Open-Meteo API
+- **Freefall-Detektion** – Automatische Erkennung von Exit und Deployment via Beschleunigungssensoren
+- **Statistiken** – Gesamtzahl Sprünge, Freefall-Zeit, Durchschnittsgeschwindigkeit, Sprünge pro Monat
+- **Achievements** – Freischaltbare Erfolge basierend auf Sprunganzahl und Meilensteinen
+- **Equipment-Verwaltung** – Verwalte dein Gurtzeug, Schirme und weitere Ausrüstung
+- **Profil** – Persönliche Daten und Lizenzinformationen
+- **Design-Modi** – Hell, Dunkel und System-Modus
+- **Einstellungen** – Metrisch/Imperial, 24h/12h Zeitformat
+
+### ⌚ WearOS (Smartwatch)
+- **Kompaktes UI** – Optimiert für runde Displays
+- **Sprungerfassung** – Vereinfachte Erfassung direkt am Handgelenk
+- **Live Freefall-Detektion** – Echtzeit-Tracking während des Sprungs
+- **Statistiken** – Schneller Überblick über deine Sprungdaten
+- **Simulationsmodus** – Zum Testen der Freefall-Detektion
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend (Flutter)
+| Technologie | Verwendung |
+|-------------|------------|
+| Flutter 3.x | Cross-Platform Framework |
+| Dart | Programmiersprache |
+| Riverpod | State Management |
+| flutter_map | Kartenansicht |
+| geolocator | GPS-Ortung |
+| sensors_plus | Beschleunigungssensoren |
+| intl | Internationalisierung |
+
+### Backend (Python)
+| Technologie | Verwendung |
+|-------------|------------|
+| FastAPI | REST API Framework |
+| SQLAlchemy | ORM für SQLite |
+| Pydantic | Schema Validation |
+| httpx | HTTP Client (Wetter-API) |
+| pytest | Testing |
+
+### Externe APIs
+- **Open-Meteo** – Wettervorhersage und historische Wetterdaten
+
+---
+
+## 📁 Projektstruktur
 
 ```
 Skydive-Tracker/
-├── mobile/          # React Native Mobile App (Android & iOS)
-├── backend/         # Python FastAPI Backend
-└── README.md        # Diese Datei
+├── 📂 frontend/                    # Flutter App
+│   ├── 📂 lib/
+│   │   ├── 📂 config/              # API-Konfiguration
+│   │   ├── 📂 models/              # Datenmodelle
+│   │   │   ├── achievement.dart
+│   │   │   ├── equipment.dart
+│   │   │   ├── freefall_stats.dart
+│   │   │   ├── jump.dart
+│   │   │   ├── profile.dart
+│   │   │   └── weather.dart
+│   │   ├── 📂 providers/           # Riverpod State Providers
+│   │   ├── 📂 screens/             # UI Screens
+│   │   │   ├── 📂 wear_os/         # WearOS-spezifische Screens
+│   │   │   └── ...
+│   │   ├── 📂 services/            # Business Logic & APIs
+│   │   │   ├── api_service.dart
+│   │   │   ├── freefall_detection_service.dart
+│   │   │   ├── geocoding_service.dart
+│   │   │   ├── weather_service.dart
+│   │   │   └── ...
+│   │   ├── 📂 widgets/             # Wiederverwendbare Widgets
+│   │   │   └── 📂 wear_os/         # WearOS-spezifische Widgets
+│   │   └── main.dart               # App Entry Point
+│   ├── 📂 android/                 # Android-spezifische Konfiguration
+│   ├── 📂 ios/                     # iOS-spezifische Konfiguration
+│   └── pubspec.yaml                # Dependencies
+│
+├── 📂 backend/                     # Python FastAPI Backend
+│   ├── 📂 app/
+│   │   ├── 📂 api/v1/              # API Endpoints
+│   │   │   ├── jumps.py
+│   │   │   ├── equipment.py
+│   │   │   ├── profile.py
+│   │   │   ├── statistics.py
+│   │   │   └── weather.py
+│   │   ├── 📂 models/              # SQLAlchemy Models
+│   │   ├── 📂 schemas/             # Pydantic Schemas
+│   │   ├── 📂 services/            # Business Logic
+│   │   │   ├── weather_service.py  # Open-Meteo Integration
+│   │   │   └── ...
+│   │   ├── 📂 db/                  # Datenbank-Konfiguration
+│   │   └── main.py                 # FastAPI App
+│   ├── 📂 tests/                   # Pytest Tests
+│   ├── requirements.txt            # Python Dependencies
+│   └── run.py                      # Server Startskript
+│
+└── README.md
 ```
 
-### Mobile App (`mobile/`)
+---
 
-Die React Native App für Android und iOS.
+## 📋 Voraussetzungen
 
-**Technologie-Stack:**
-- React Native 0.73
-- TypeScript
-- React Navigation
-- SQLite (lokale Datenbank)
-- Jest für Tests
+### Für die Flutter App
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) >= 3.10
+- [Android Studio](https://developer.android.com/studio) (für Android)
+- [Xcode](https://developer.apple.com/xcode/) (für iOS, nur macOS)
+- Android Emulator oder physisches Gerät
 
-**Struktur:**
-```
-mobile/
-├── src/
-│   ├── components/      # Wiederverwendbare UI-Komponenten
-│   ├── screens/         # Screen-Komponenten
-│   │   ├── JumpsScreen.tsx
-│   │   ├── JumpDetailScreen.tsx
-│   │   ├── ProfileScreen.tsx
-│   │   └── StatisticsScreen.tsx
-│   ├── services/        # Business Logic Layer
-│   │   ├── database/    # SQLite Datenbank Service
-│   │   ├── jumps/       # Sprung-Service
-│   │   ├── equipment/   # Ausrüstungs-Service
-│   │   └── profile/     # Profil-Service
-│   ├── models/          # TypeScript Interfaces
-│   │   ├── Jump.ts
-│   │   ├── Equipment.ts
-│   │   └── Profile.ts
-│   ├── navigation/      # Navigation Setup
-│   │   └── AppNavigator.tsx
-│   ├── utils/           # Helper-Funktionen
-│   └── App.tsx          # Root Component
-├── __tests__/           # Test-Dateien
-├── package.json
-├── tsconfig.json
-└── jest.config.js
+### Für das Backend
+- [Python](https://www.python.org/downloads/) >= 3.10
+- pip (Python Package Manager)
+
+---
+
+## 🚀 Installation & Setup
+
+### 1. Repository klonen
+```bash
+git clone https://github.com/yourusername/Skydive-Tracker.git
+cd Skydive-Tracker
 ```
 
-### Backend (`backend/`)
+### 2. Backend starten
+```bash
+# In das Backend-Verzeichnis wechseln
+cd backend
 
-Python FastAPI Backend für zukünftige Cloud-Synchronisation und erweiterte Features.
+# Virtuelle Umgebung erstellen (empfohlen)
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# oder: venv\Scripts\activate  # Windows
 
-**Technologie-Stack:**
-- Python 3.10+
-- FastAPI
-- SQLAlchemy (ORM)
-- Pydantic (Schema Validation)
-- SQLite (kann später auf PostgreSQL/MongoDB erweitert werden)
-- Pytest für Tests
+# Dependencies installieren
+pip install -r requirements.txt
 
-**Struktur:**
+# Server starten
+python run.py
 ```
-backend/
-├── app/
-│   ├── api/             # API Routes
-│   │   └── v1/
-│   │       ├── jumps.py
-│   │       ├── equipment.py
-│   │       ├── profile.py
-│   │       └── statistics.py
-│   ├── models/          # SQLAlchemy Models
-│   │   ├── jump.py
-│   │   ├── equipment.py
-│   │   └── profile.py
-│   ├── schemas/         # Pydantic Schemas
-│   │   ├── jump.py
-│   │   ├── equipment.py
-│   │   └── profile.py
-│   ├── services/        # Business Logic
-│   │   ├── jump_service.py
-│   │   ├── equipment_service.py
-│   │   ├── profile_service.py
-│   │   └── statistics_service.py
-│   ├── db/              # Database Configuration
-│   │   └── database.py
-│   └── main.py          # FastAPI App
-├── tests/               # Test-Dateien
-│   ├── conftest.py      # Pytest Fixtures
-│   ├── test_jumps.py
-│   └── test_statistics.py
-├── requirements.txt
-└── run.py
+Der Server läuft nun auf `http://localhost:8000`
+
+**API-Dokumentation:** `http://localhost:8000/docs` (Swagger UI)
+
+### 3. Frontend starten
+```bash
+# In das Frontend-Verzeichnis wechseln
+cd frontend
+
+# Dependencies installieren
+flutter pub get
+
+# App starten (Emulator muss laufen)
+flutter run
 ```
 
-## Warum diese Struktur?
+### 4. API-Endpunkt konfigurieren
+Die Backend-URL kann in `frontend/lib/config/api_config.dart` angepasst werden:
+```dart
+class ApiConfig {
+  static const String baseUrl = 'http://10.0.2.2:8000';  // Android Emulator
+  // static const String baseUrl = 'http://localhost:8000';  // iOS Simulator
+}
+```
 
-### 1. **Separation of Concerns**
-- **Mobile App**: Fokus auf UI/UX und lokale Datenverwaltung
-- **Backend**: Bereit für zukünftige Cloud-Features, Synchronisation, Multi-User-Support
+---
 
-### 2. **Skalierbarkeit**
-- Klare Trennung zwischen Frontend und Backend ermöglicht unabhängige Entwicklung
-- Backend kann später um Authentication, Cloud-Sync, Analytics erweitert werden
-- Mobile App kann zunächst offline funktionieren, später mit Backend synchronisieren
+## 📱 Build & Deployment
 
-### 3. **Wartbarkeit**
-- **Feature-basierte Struktur**: Jede Funktionalität (Jumps, Equipment, Profile) hat eigene Services, Models, Schemas
-- **Layered Architecture**: 
-  - Models: Datenstrukturen
-  - Services: Business Logic
-  - API/Components: Präsentationsschicht
-- **Type-Safety**: TypeScript im Frontend, Pydantic im Backend für frühe Fehlererkennung
+### Android APK
+```bash
+cd frontend
+flutter build apk --release
+```
+Output: `frontend/build/app/outputs/flutter-apk/app-release.apk`
 
-### 4. **Testbarkeit**
-- Services können isoliert getestet werden
-- Models und Schemas sind unabhängig testbar
-- Klare Dependency Injection durch Services
+### iOS (nur macOS)
+```bash
+cd frontend
+flutter build ios --release
+```
 
-### 5. **Best Practices**
-- **Mobile**: React Native Best Practices (Navigation, State Management vorbereitet)
-- **Backend**: FastAPI Best Practices (Dependency Injection, Schema Validation, API Versioning)
-- **Datenbank**: SQLite lokal für Offline-First, später erweiterbar
+### WearOS
+```bash
+cd frontend
+flutter build apk --release
+# APK auf WearOS-Gerät installieren
+adb install build/app/outputs/flutter-apk/app-release.apk
+```
 
-### 6. **Entwicklerfreundlichkeit**
-- Klare Verzeichnisstruktur macht Navigation einfach
-- Konsistente Namenskonventionen
-- Path Aliases für einfachere Imports (`@components`, `@services`, etc.)
+---
 
-## Funktionen (geplant)
+## 🧪 Tests ausführen
 
-### 1. Sprungerfassung
-- Automatisches Datum/Zeit (manuell anpassbar)
-- Ort-Eingabe
-- Höhenangabe
-- Checkliste basierend auf Equipment
+### Backend Tests
+```bash
+cd backend
+pytest
+```
 
-### 2. Profil und Ausrüstung
-- Persönliche Daten (Name, Lizenz)
-- Equipment-Verwaltung (Schirm, Gurtzeug, etc.)
-- Integration in Checkliste
+### Frontend Tests
+```bash
+cd frontend
+flutter test
+```
 
-### 3. Statistik und Übersicht
-- Gesamtzahl Sprünge
-- Filterung nach Ort
-- Weitere Statistiken
+---
 
-## Setup
+## 📡 API Endpoints
 
-### Mobile App Setup
-- **Detaillierte Setup-Anleitung:** Siehe [mobile/SETUP.md](mobile/SETUP.md)
-- **Kurze Übersicht:** Siehe [mobile/README.md](mobile/README.md)
+| Methode | Endpoint | Beschreibung |
+|---------|----------|--------------|
+| `GET` | `/api/v1/jumps/` | Alle Sprünge abrufen |
+| `POST` | `/api/v1/jumps/` | Neuen Sprung erstellen |
+| `GET` | `/api/v1/jumps/{id}` | Einzelnen Sprung abrufen |
+| `PUT` | `/api/v1/jumps/{id}` | Sprung aktualisieren |
+| `DELETE` | `/api/v1/jumps/{id}` | Sprung löschen |
+| `GET` | `/api/v1/statistics/` | Statistiken abrufen |
+| `POST` | `/api/v1/weather/` | Wetterdaten abrufen |
+| `GET` | `/api/v1/equipment/` | Ausrüstung abrufen |
+| `POST` | `/api/v1/equipment/` | Ausrüstung hinzufügen |
+| `GET` | `/api/v1/profile/` | Profil abrufen |
+| `PUT` | `/api/v1/profile/` | Profil aktualisieren |
 
-**Schnellstart:**
-1. Node.js >= 18 installieren
-2. Android Studio installieren (für Android) oder Xcode (für iOS, nur macOS)
-3. `cd mobile && npm install`
-4. Emulator starten (Android Studio Device Manager oder iOS Simulator)
-5. `npm start` (Metro Bundler)
-6. In neuem Terminal: `npm run android` oder `npm run ios`
+Vollständige Dokumentation: `http://localhost:8000/docs`
 
-### Backend Setup
-Siehe [backend/README.md](backend/README.md)
+---
 
-## Entwicklung
+## 🎯 Freefall-Detektion
 
-### Workflow
-1. Mobile App entwickelt Features lokal mit SQLite
-2. Backend kann parallel entwickelt werden
-3. Später: Synchronisation zwischen Mobile App und Backend
+Die App nutzt die Beschleunigungssensoren des Geräts zur automatischen Erkennung von:
 
-### Testing
-- Mobile: `npm test` im `mobile/` Verzeichnis
-- Backend: `pytest` im `backend/` Verzeichnis
+- **Exit** – Plötzliche Beschleunigungsänderung beim Verlassen des Flugzeugs
+- **Freefall** – Annähernd Schwerelosigkeit während des freien Falls
+- **Deployment** – Starke Verzögerung bei Schirmöffnung
 
-## Nächste Schritte
+### Simulationsmodus
+Zum Testen ohne echten Sprung:
+1. WearOS: Einstellungen → "Freefall Simulation" aktivieren
+2. Mobile: `flutter run --dart-define=USE_SIMULATED_SENSORS=true`
 
-1. UI-Komponenten implementieren
-2. Formulare für Sprungerfassung
-3. Equipment-Verwaltung UI
-4. Statistik-Dashboards
-5. Backend-Integration (später)
+Mehr Details: [FREEFALL_DETECTION.md](FREEFALL_DETECTION.md)
+
+---
+
+## 🤝 Mitwirken
+
+Beiträge sind willkommen! So kannst du mitmachen:
+
+1. **Fork** das Repository
+2. Erstelle einen **Feature Branch** (`git checkout -b feature/AmazingFeature`)
+3. **Commit** deine Änderungen (`git commit -m 'Add some AmazingFeature'`)
+4. **Push** zum Branch (`git push origin feature/AmazingFeature`)
+5. Öffne einen **Pull Request**
+
+---
+
+## 📄 Lizenz
+
+Dieses Projekt ist unter der MIT-Lizenz lizenziert. Siehe [LICENSE](LICENSE) für Details.
+
+---
+
+## 🙏 Danksagungen
+
+- [Open-Meteo](https://open-meteo.com/) – Kostenlose Wetter-API
+- [Flutter](https://flutter.dev/) – Cross-Platform Framework
+- [FastAPI](https://fastapi.tiangolo.com/) – Python Web Framework
+
+---
+
+<div align="center">
+
+**Made with ❤️ for Skydivers**
+
+</div>
