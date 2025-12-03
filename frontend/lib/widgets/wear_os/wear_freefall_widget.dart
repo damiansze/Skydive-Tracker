@@ -75,11 +75,27 @@ class _WearFreefallWidgetState extends State<WearFreefallWidget> {
     } catch (e) {
       if (mounted) {
         setState(() => _isDetecting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler: $e', style: const TextStyle(fontSize: 10))),
-        );
+        _showWearSnackBar('Fehler: $e');
       }
     }
+  }
+
+  void _showWearSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 10),
+          textAlign: TextAlign.center,
+        ),
+        backgroundColor: Colors.red[700],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   Future<void> _stopDetection() async {
@@ -103,9 +119,7 @@ class _WearFreefallWidgetState extends State<WearFreefallWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler: $e', style: const TextStyle(fontSize: 10))),
-        );
+        _showWearSnackBar('Fehler: $e');
       }
     }
   }

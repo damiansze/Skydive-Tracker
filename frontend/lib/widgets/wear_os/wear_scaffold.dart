@@ -144,20 +144,20 @@ class WearListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
           color: selected 
               ? Theme.of(context).colorScheme.primaryContainer
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           children: [
             if (leading != null) ...[
               leading!,
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
             ],
             Expanded(
               child: Column(
@@ -167,7 +167,7 @@ class WearListTile extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 10,
                       fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -176,7 +176,7 @@ class WearListTile extends StatelessWidget {
                     Text(
                       subtitle!,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 8,
                         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -212,14 +212,14 @@ class WearCard extends StatelessWidget {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
       ),
       color: color,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: padding ?? const EdgeInsets.all(12),
+          padding: padding ?? const EdgeInsets.all(8),
           child: child,
         ),
       ),

@@ -88,18 +88,19 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        contentPadding: const EdgeInsets.all(12),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        title: const Text('Ort eingeben', style: TextStyle(fontSize: 12)),
+        contentPadding: const EdgeInsets.all(8),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+        titlePadding: const EdgeInsets.only(top: 8, left: 8, right: 8),
+        title: const Text('Ort eingeben', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: _locationController,
           autofocus: true,
-          style: const TextStyle(fontSize: 11),
+          style: const TextStyle(fontSize: 10),
           decoration: const InputDecoration(
             hintText: 'z.B. Interlaken, CH',
-            hintStyle: TextStyle(fontSize: 10),
+            hintStyle: TextStyle(fontSize: 9),
             isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           ),
           onSubmitted: (value) {
             Navigator.pop(context);
@@ -112,8 +113,12 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            child: const Text('Abbruch', style: TextStyle(fontSize: 10)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Abbruch', style: TextStyle(fontSize: 9)),
           ),
           TextButton(
             onPressed: () {
@@ -124,8 +129,12 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
                 _searchLocation(value);
               }
             },
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            child: const Text('OK', style: TextStyle(fontSize: 10)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('OK', style: TextStyle(fontSize: 9)),
           ),
         ],
       ),
@@ -195,11 +204,27 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
     });
   }
 
+  void _showWearSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 10),
+          textAlign: TextAlign.center,
+        ),
+        backgroundColor: isError ? Colors.red[700] : Colors.green[700],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _saveJump() async {
     if (_location.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ort erforderlich')),
-      );
+      _showWearSnackBar('Ort erforderlich', isError: true);
       return;
     }
 
@@ -227,15 +252,11 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
 
       if (mounted) {
         Navigator.of(context).pop(true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sprung gespeichert!')),
-        );
+        _showWearSnackBar('Sprung gespeichert!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler: $e')),
-        );
+        _showWearSnackBar('Fehler: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
