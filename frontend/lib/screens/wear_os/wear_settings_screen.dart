@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../services/freefall_detection_service.dart';
 import '../../widgets/wear_os/wear_scaffold.dart';
 import '../settings_screen.dart';
+
+/// Provider for simulation mode state
+final simulationModeProvider = StateProvider<bool>((ref) => 
+    FreefallDetectionService.useSimulatedSensors);
 
 /// Settings screen for WearOS
 class WearSettingsScreen extends ConsumerWidget {
@@ -12,6 +17,7 @@ class WearSettingsScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final metric = ref.watch(metricProvider);
     final timeFormat = ref.watch(timeFormatProvider);
+    final simulationMode = ref.watch(simulationModeProvider);
 
     return WearScaffold(
       title: 'Settings',
@@ -47,7 +53,11 @@ class WearSettingsScreen extends ConsumerWidget {
             value: timeFormat == '24h' ? '24h' : '12h',
             onTap: () => _showTimeFormatDialog(context, ref, timeFormat),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+          
+          // Freefall Simulation Toggle
+          _buildSimulationToggle(context, ref, simulationMode),
+          const SizedBox(height: 6),
           
           // Info - compact
           Card(
@@ -74,6 +84,64 @@ class WearSettingsScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+  
+  Widget _buildSimulationToggle(BuildContext context, WidgetRef ref, bool isEnabled) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      color: isEnabled ? Colors.orange.withOpacity(0.15) : null,
+      child: InkWell(
+        onTap: () {
+          final newValue = !isEnabled;
+          FreefallDetectionService.setUseSimulation(newValue);
+          ref.read(simulationModeProvider.notifier).state = newValue;
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            children: [
+              Icon(
+                Icons.bug_report,
+                size: 14,
+                color: isEnabled ? Colors.orange : null,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Freefall Simulation',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isEnabled ? Colors.orange : null,
+                      ),
+                    ),
+                    Text(
+                      isEnabled ? 'Aktiviert (Test)' : 'Deaktiviert',
+                      style: TextStyle(
+                        fontSize: 8,
+                        color: isEnabled ? Colors.orange : Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: isEnabled,
+                onChanged: (value) {
+                  FreefallDetectionService.setUseSimulation(value);
+                  ref.read(simulationModeProvider.notifier).state = value;
+                },
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

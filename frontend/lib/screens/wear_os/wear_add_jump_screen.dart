@@ -8,6 +8,10 @@ import '../../providers/jump_provider.dart';
 import '../../services/geocoding_service.dart';
 import '../../services/weather_service.dart';
 import '../../widgets/wear_os/wear_scaffold.dart';
+import '../../widgets/wear_os/wear_time_picker.dart';
+import '../../widgets/wear_os/wear_date_picker.dart';
+import '../../widgets/wear_os/wear_freefall_widget.dart';
+import '../settings_screen.dart';
 
 /// Simplified jump recording screen for WearOS
 class WearAddJumpScreen extends ConsumerStatefulWidget {
@@ -151,8 +155,8 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
   }
 
   Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
+    final DateTime? picked = await WearDatePicker.show(
+      context,
       initialDate: _selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
@@ -164,13 +168,24 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
   }
 
   Future<void> _selectTime() async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
+    final timeFormat = ref.read(timeFormatProvider);
+    final TimeOfDay? picked = await WearTimePicker.show(
+      context,
       initialTime: _selectedTime,
+      use24HourFormat: timeFormat == '24h',
     );
     if (picked != null && picked != _selectedTime) {
       setState(() => _selectedTime = picked);
       _fetchWeather();
+    }
+  }
+  
+  String _formatTime(TimeOfDay time) {
+    final timeFormat = ref.read(timeFormatProvider);
+    if (timeFormat == '24h') {
+      return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+    } else {
+      return time.format(context);
     }
   }
 
@@ -286,7 +301,7 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
                   children: [
                     const Text('Zeit', style: TextStyle(fontSize: 8)),
                     Text(
-                      _selectedTime.format(context),
+                      _formatTime(_selectedTime),
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ],
@@ -334,7 +349,7 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
     );
   }
 
-  // Step 2: Altitude and Type
+  // Step 2: Altitude, Type, and Freefall Detection
   Widget _buildStep2Details() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -415,8 +430,16 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 4),
           
-          const SizedBox(height: 8),
+          // Freefall Detection
+          WearFreefallWidget(
+            onStatsUpdated: (stats) {
+              setState(() => _freefallStats = stats);
+            },
+          ),
+          
+          const SizedBox(height: 4),
           const Text('← | →', style: TextStyle(fontSize: 8)),
         ],
       ),
@@ -455,6 +478,18 @@ class _WearAddJumpScreenState extends ConsumerState<WearAddJumpScreen> {
                 _buildSummaryRow(Icons.location_on, _location.isEmpty ? '-' : _location),
                 _buildSummaryRow(Icons.height, '$_altitude m'),
                 _buildSummaryRow(Icons.flight_takeoff, _jumpType.displayName),
+                if (_freefallStats != null) ...[
+                  const Divider(height: 6),
+                  _buildSummaryRow(
+                    Icons.timer,
+                    'Freefall: ${_freefallStats!.freefallDurationSeconds?.toStringAsFixed(1) ?? '-'} s',
+                  ),
+                  if (_freefallStats!.maxVerticalVelocityKmh != null)
+                    _buildSummaryRow(
+                      Icons.speed,
+                      'Max: ${_freefallStats!.maxVerticalVelocityKmh!.toStringAsFixed(0)} km/h',
+                    ),
+                ],
                 if (_weather != null && _weather!.hasData) ...[
                   const Divider(height: 6),
                   _buildSummaryRow(
