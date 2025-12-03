@@ -211,17 +211,41 @@ adb install build/app/outputs/flutter-apk/app-release.apk
 
 ## 🧪 Tests ausführen
 
+### Alle Tests auf einmal
+```bash
+# Vom Projekt-Root
+python run_tests.py
+# oder
+make test
+```
+
 ### Backend Tests
 ```bash
 cd backend
 pytest
+# oder
+make test-backend
 ```
 
 ### Frontend Tests
 ```bash
 cd frontend
 flutter test
+# oder
+make test-frontend
 ```
+
+### Integration Tests
+```bash
+cd frontend
+flutter test integration_test
+# oder
+make test-integration
+```
+
+**Test-Coverage**: Backend min. 80%, Frontend min. 70%
+
+📖 **Detaillierte Test-Dokumentation**: [TESTING.md](TESTING.md)
 
 ---
 
