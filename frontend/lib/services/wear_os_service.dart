@@ -5,9 +5,16 @@ import 'package:flutter/services.dart';
 /// Service to detect if the app is running on WearOS and get screen info
 class WearOSService {
   static bool? _isWearOS;
+  static bool _forceWearOS = false;
+
+  /// Force WearOS mode (for testing only)
+  static void setForceWearOS(bool enabled) {
+    _forceWearOS = enabled;
+  }
 
   /// Check if the device is a WearOS device
   static Future<bool> isWearOS() async {
+    if (_forceWearOS) return true;
     if (_isWearOS != null) return _isWearOS!;
     
     if (!Platform.isAndroid) {
@@ -21,8 +28,7 @@ class WearOSService {
       final result = await platform.invokeMethod<bool>('isWearOS');
       _isWearOS = result ?? false;
     } catch (e) {
-      // Fallback: Check screen size (WearOS watches are typically < 2 inches / ~300-450px)
-      // This is a heuristic and may not be 100% accurate
+      // Fallback: assume not WearOS if platform channel fails
       _isWearOS = false;
     }
     
@@ -30,17 +36,35 @@ class WearOSService {
   }
 
   /// Check screen size to determine if we should use WearOS layout
-  /// Returns true if screen is small enough for watch UI (< 500px width/height)
+  /// Returns true ONLY for small, roughly square screens (actual watches)
+  /// Watches: 300-454px square screens
+  /// Phones: rectangular screens, usually 360-430px wide but 700-900px+ tall
   static bool shouldUseWatchLayout(double screenWidth, double screenHeight) {
+    if (_forceWearOS) return true;
+    
     final smallestDimension = screenWidth < screenHeight ? screenWidth : screenHeight;
-    return smallestDimension < 500;
+    final largestDimension = screenWidth > screenHeight ? screenWidth : screenHeight;
+    
+    // WearOS screens are nearly SQUARE (round or square watches)
+    // The aspect ratio should be close to 1.0 (typically 1.0 to 1.1)
+    // Phones have aspect ratios of 1.7 to 2.2+ (tall rectangles)
+    final aspectRatio = largestDimension / smallestDimension;
+    
+    // For WearOS: must be small AND nearly square
+    // - Smallest dimension must be < 460px (watch screens are typically 360-454px)
+    // - Aspect ratio must be < 1.3 (watches are square or nearly square)
+    final isSmallScreen = smallestDimension < 460;
+    final isNearlySquare = aspectRatio < 1.3;
+    
+    return isSmallScreen && isNearlySquare;
   }
 
   /// Check if the screen is round (common for WearOS)
   static bool isSmallRoundScreen(double screenWidth, double screenHeight) {
-    final smallestDimension = screenWidth < screenHeight ? screenWidth : screenHeight;
-    // Most round WearOS watches have ~400-450px diameter
-    return smallestDimension >= 300 && smallestDimension <= 500;
+    if (!shouldUseWatchLayout(screenWidth, screenHeight)) return false;
+    
+    // Round screens typically have width ≈ height (within ~50px)
+    return (screenWidth - screenHeight).abs() < 50;
   }
 
   /// Get the usable radius for round screens
@@ -74,4 +98,3 @@ extension WearOSContext on BuildContext {
     return WearOSService.getRoundScreenPadding(size.width, size.height);
   }
 }
-
