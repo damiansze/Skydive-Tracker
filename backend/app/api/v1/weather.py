@@ -1,5 +1,5 @@
 """Weather API endpoints"""
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.schemas.weather import WeatherRequest, WeatherResponse
 from app.services.weather_service import WeatherService
 from app.core.logging_config import get_logger
@@ -38,9 +38,14 @@ async def get_weather(request: WeatherRequest):
         }
     )
     
-    return await WeatherService.get_weather_for_location(
+    response = await WeatherService.get_weather_for_location(
         latitude=request.latitude,
         longitude=request.longitude,
         target_datetime=request.target_datetime,
     )
+
+    if not response.success:
+        raise HTTPException(status_code=500, detail=response.error or "Weather data fetch failed")
+
+    return response
 

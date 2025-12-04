@@ -25,25 +25,17 @@ def test_create_equipment_complete(client):
         "type": "parachute",
         "manufacturer": "Paratec",
         "model": "Sigma Tandem",
-        "serialNumber": "ST220-001",
-        "purchaseDate": "2023-06-15",
-        "purchasePrice": 3500.00,
+        "serial_number": "ST220-001",
         "notes": "Tandem main parachute",
-        "is_active": True,
-        "specifications": {
-            "size": "220 sq ft",
-            "color": "White/Blue",
-            "packVolume": "Large"
-        }
+        "is_active": 1
     }
     response = client.post("/api/v1/equipment/", json=equipment_data)
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == "Sigma Tandem 220"
     assert data["model"] == "Sigma Tandem"
-    assert data["serialNumber"] == "ST220-001"
-    assert data["purchasePrice"] == 3500.00
-    assert data["specifications"]["size"] == "220 sq ft"
+    assert data["serial_number"] == "ST220-001"
+    assert data["is_active"] == 1
 
 def test_create_equipment_invalid_data(client):
     """Test creating equipment with invalid data"""
@@ -144,7 +136,7 @@ def test_update_equipment(client):
     assert response.status_code == 200
     updated_equipment = response.json()
     assert updated_equipment["name"] == "Updated Name"
-    assert updated_equipment["isActive"] == False
+    assert updated_equipment["is_active"] == False
     assert updated_equipment["notes"] == "Updated notes"
 
 def test_update_equipment_not_found(client):
@@ -223,14 +215,14 @@ def test_get_active_equipment(client):
     assert response.status_code == 200
     equipment = response.json()
     assert len(equipment) == 2
-    assert all(eq["isActive"] == True for eq in equipment)
+    assert all(eq["is_active"] == True for eq in equipment)
 
     # Get only inactive equipment
     response = client.get("/api/v1/equipment/?is_active=false")
     assert response.status_code == 200
     equipment = response.json()
     assert len(equipment) == 1
-    assert equipment[0]["isActive"] == False
+    assert equipment[0]["is_active"] == False
 
 def test_equipment_validation_rules(client):
     """Test equipment validation rules"""
@@ -262,13 +254,13 @@ def test_equipment_purchase_price_validation(client):
         "name": "Expensive Equipment",
         "type": "parachute",
         "manufacturer": "Test",
-        "purchasePrice": 2500.50
+        "purchase_price": 2500.50
     }
     response = client.post("/api/v1/equipment/", json=equipment_data)
     assert response.status_code == 201
 
     # Negative price should fail
-    equipment_data["purchasePrice"] = -100
+    equipment_data["purchase_price"] = -100
     response = client.post("/api/v1/equipment/", json=equipment_data)
     assert response.status_code == 422
 

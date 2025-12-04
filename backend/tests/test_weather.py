@@ -9,18 +9,21 @@ def test_get_weather_valid_request(client):
     weather_request = {
         "latitude": 46.6863,
         "longitude": 7.8632,
-        "target_datetime": datetime(2024, 1, 15, 14, 30, tzinfo=timezone.utc).isoformat()
+        "target_datetime": datetime(2025, 12, 4, 14, 30, tzinfo=timezone.utc).isoformat()
     }
 
     # Mock the Open-Meteo API response
     mock_response_data = {
-        "temperature_2m": [15.5],
-        "windspeed_10m": [12.0],
-        "winddirection_10m": [180],
-        "relativehumidity_2m": [65],
-        "surface_pressure": [1013.25],
-        "cloudcover": [25],
-        "visibility": [15000]
+        "hourly": {
+            "time": ["2025-12-04T14:00"],
+            "temperature_2m": [15.5],
+            "wind_speed_10m": [12.0],
+            "wind_direction_10m": [180],
+            "relative_humidity_2m": [65],
+            "surface_pressure": [1013.25],
+            "cloud_cover": [25],
+            "visibility": [15000]
+        }
     }
 
     with patch('httpx.AsyncClient.get') as mock_get:
@@ -87,7 +90,7 @@ def test_get_weather_api_error(client):
 
         response = client.post("/api/v1/weather/", json=weather_request)
         assert response.status_code == 500
-        assert "error" in response.json()
+        assert "detail" in response.json()
 
 def test_get_weather_future_date(client):
     """Test weather request for future date (forecast API)"""
@@ -99,13 +102,16 @@ def test_get_weather_future_date(client):
     }
 
     mock_response_data = {
-        "temperature_2m": [20.0],
-        "windspeed_10m": [8.0],
-        "winddirection_10m": [90],
-        "relativehumidity_2m": [55],
-        "surface_pressure": [1015.0],
-        "cloudcover": [10],
-        "visibility": [20000]
+        "hourly": {
+            "time": ["2024-01-20T14:00"],
+            "temperature_2m": [20.0],
+            "wind_speed_10m": [8.0],
+            "wind_direction_10m": [90],
+            "relative_humidity_2m": [55],
+            "surface_pressure": [1015.0],
+            "cloud_cover": [10],
+            "visibility": [20000]
+        }
     }
 
     with patch('httpx.AsyncClient.get') as mock_get:
@@ -134,13 +140,16 @@ def test_get_weather_historical_date(client):
 
     # Note: Archive API doesn't have visibility, so it should be null
     mock_response_data = {
-        "temperature_2m": [18.5],
-        "windspeed_10m": [15.0],
-        "winddirection_10m": [270],
-        "relativehumidity_2m": [70],
-        "surface_pressure": [1010.0],
-        "cloudcover": [40]
-        # No visibility in archive API
+        "hourly": {
+            "time": ["2020-08-15T14:00"],
+            "temperature_2m": [18.5],
+            "wind_speed_10m": [15.0],
+            "wind_direction_10m": [270],
+            "relative_humidity_2m": [70],
+            "surface_pressure": [1010.0],
+            "cloud_cover": [40]
+            # No visibility in archive API
+        }
     }
 
     with patch('httpx.AsyncClient.get') as mock_get:
@@ -172,13 +181,16 @@ def test_weather_data_validation(client):
     }
 
     mock_response_data = {
-        "temperature_2m": [15.0],
-        "windspeed_10m": [10.0],
-        "winddirection_10m": [360],  # Should be normalized to 0
-        "relativehumidity_2m": [60],
-        "surface_pressure": [1013.0],
-        "cloudcover": [20],
-        "visibility": [10000]
+        "hourly": {
+            "time": ["2024-12-04T00:00"],
+            "temperature_2m": [15.0],
+            "wind_speed_10m": [10.0],
+            "wind_direction_10m": [360],  # Should be normalized to 0
+            "relative_humidity_2m": [60],
+            "surface_pressure": [1013.0],
+            "cloud_cover": [20],
+            "visibility": [10000]
+        }
     }
 
     with patch('httpx.AsyncClient.get') as mock_get:
@@ -227,4 +239,4 @@ def test_weather_invalid_api_response(client):
 
         response = client.post("/api/v1/weather/", json=weather_request)
         assert response.status_code == 500
-        assert "error" in response.json()
+        assert "detail" in response.json()
