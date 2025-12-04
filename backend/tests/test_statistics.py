@@ -16,19 +16,19 @@ def test_get_total_jumps_with_data(client):
             "date": datetime(2024, 1, 15, tzinfo=timezone.utc).isoformat(),
             "location": "Interlaken",
             "altitude": 12000,
-            "jumpType": "SOLO"
+            "jump_type": "solo"
         },
         {
             "date": datetime(2024, 1, 20, tzinfo=timezone.utc).isoformat(),
             "location": "Locarno",
             "altitude": 10000,
-            "jumpType": "TANDEM"
+            "jump_type": "tandem"
         },
         {
             "date": datetime(2024, 2, 5, tzinfo=timezone.utc).isoformat(),
             "location": "Interlaken",
             "altitude": 13000,
-            "jumpType": "SOLO"
+            "jump_type": "solo"
         }
     ]
 
@@ -61,7 +61,7 @@ def test_get_statistics_summary_with_data(client):
             "date": datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc).isoformat(),
             "location": "Interlaken",
             "altitude": 12000,
-            "jumpType": "SOLO",
+            "jump_type": "solo",
             "freefallStats": {
                 "freefallDurationSeconds": 45.0,
                 "maxVerticalVelocityMs": 55.0,
@@ -73,7 +73,7 @@ def test_get_statistics_summary_with_data(client):
             "date": datetime(2024, 1, 20, 14, 30, tzinfo=timezone.utc).isoformat(),
             "location": "Locarno",
             "altitude": 10000,
-            "jumpType": "TANDEM",
+            "jump_type": "tandem",
             "freefallStats": {
                 "freefallDurationSeconds": 30.0,
                 "maxVerticalVelocityMs": 45.0,
@@ -85,7 +85,7 @@ def test_get_statistics_summary_with_data(client):
             "date": datetime(2024, 2, 5, 11, 15, tzinfo=timezone.utc).isoformat(),
             "location": "Interlaken",
             "altitude": 13000,
-            "jumpType": "SOLO",
+            "jump_type": "solo",
             "freefallStats": {
                 "freefallDurationSeconds": 60.0,
                 "maxVerticalVelocityMs": 58.0,
@@ -147,7 +147,7 @@ def test_get_monthly_statistics(client):
                 "date": datetime(year, month, i+1, tzinfo=timezone.utc).isoformat(),
                 "location": f"Location {jump_count}",
                 "altitude": 12000,
-                "jumpType": "SOLO"
+                "jump_type": "solo"
             }
             response = client.post("/api/v1/jumps/", json=jump_data)
             assert response.status_code == 201
@@ -184,7 +184,7 @@ def test_get_jump_types_distribution(client):
                 "date": datetime.now(timezone.utc).isoformat(),
                 "location": f"Location {jump_type} {i}",
                 "altitude": 12000,
-                "jumpType": jump_type
+                "jump_type": jump_type
             }
             response = client.post("/api/v1/jumps/", json=jump_data)
             assert response.status_code == 201
@@ -212,7 +212,7 @@ def test_get_location_statistics(client):
                 "date": datetime.now(timezone.utc).isoformat(),
                 "location": location,
                 "altitude": altitude,
-                "jumpType": "SOLO"
+                "jump_type": "solo"
             }
             response = client.post("/api/v1/jumps/", json=jump_data)
             assert response.status_code == 201

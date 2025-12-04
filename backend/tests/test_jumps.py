@@ -6,19 +6,19 @@ import uuid
 def test_create_jump_minimal(client):
     """Test creating a jump with minimal data"""
     jump_data = {
-        "date": datetime.now(timezone.utc).isoformat(),
+        "date": datetime(2024, 1, 15, 14, 30, tzinfo=timezone.utc).isoformat(),
         "location": "Test Dropzone",
         "altitude": 14000,
-        "jumpType": "SOLO"
+        "jump_type": "solo"
     }
     response = client.post("/api/v1/jumps/", json=jump_data)
     assert response.status_code == 201
     data = response.json()
     assert data["location"] == "Test Dropzone"
     assert data["altitude"] == 14000
-    assert data["jumpType"] == "SOLO"
+    assert data["jump_type"] == "SOLO"
     assert "id" in data
-    assert "createdAt" in data
+    assert "created_at" in data
 
 def test_create_jump_complete(client):
     """Test creating a jump with all optional fields"""
@@ -28,7 +28,7 @@ def test_create_jump_complete(client):
         "latitude": 46.6863,
         "longitude": 7.8632,
         "altitude": 12000,
-        "jumpType": "TANDEM",
+        "jump_type": "tandem",
         "notes": "Great jump with student",
         "equipmentIds": [],
         "freefallStats": {
@@ -69,7 +69,7 @@ def test_create_jump_invalid_data(client):
         "date": datetime.now(timezone.utc).isoformat(),
         "location": "Test",
         "altitude": 14000,
-        "jumpType": "INVALID_TYPE"
+        "jump_type": "INVALID_TYPE"
     }
     response = client.post("/api/v1/jumps/", json=jump_data)
     assert response.status_code == 422
@@ -79,7 +79,7 @@ def test_create_jump_invalid_data(client):
         "date": datetime.now(timezone.utc).isoformat(),
         "location": "Test",
         "altitude": -100,  # Invalid negative altitude
-        "jumpType": "SOLO"
+        "jump_type": "solo"
     }
     response = client.post("/api/v1/jumps/", json=jump_data)
     assert response.status_code == 422
@@ -98,13 +98,13 @@ def test_get_jumps_with_data(client):
             "date": datetime(2024, 1, 15, tzinfo=timezone.utc).isoformat(),
             "location": "Interlaken",
             "altitude": 12000,
-            "jumpType": "SOLO"
+            "jump_type": "solo"
         },
         {
             "date": datetime(2024, 1, 20, tzinfo=timezone.utc).isoformat(),
             "location": "Locarno",
             "altitude": 10000,
-            "jumpType": "TANDEM"
+            "jump_type": "tandem"
         }
     ]
 
@@ -127,7 +127,7 @@ def test_get_jump_by_id(client):
         "date": datetime.now(timezone.utc).isoformat(),
         "location": "Test Jump",
         "altitude": 14000,
-        "jumpType": "SOLO"
+        "jump_type": "solo"
     }
     create_response = client.post("/api/v1/jumps/", json=jump_data)
     assert create_response.status_code == 201
@@ -153,7 +153,7 @@ def test_update_jump(client):
         "date": datetime.now(timezone.utc).isoformat(),
         "location": "Original Location",
         "altitude": 14000,
-        "jumpType": "SOLO"
+        "jump_type": "solo"
     }
     create_response = client.post("/api/v1/jumps/", json=jump_data)
     jump_id = create_response.json()["id"]
@@ -184,7 +184,7 @@ def test_delete_jump(client):
         "date": datetime.now(timezone.utc).isoformat(),
         "location": "Jump to Delete",
         "altitude": 14000,
-        "jumpType": "SOLO"
+        "jump_type": "solo"
     }
     create_response = client.post("/api/v1/jumps/", json=jump_data)
     jump_id = create_response.json()["id"]

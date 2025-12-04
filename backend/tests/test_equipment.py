@@ -29,7 +29,7 @@ def test_create_equipment_complete(client):
         "purchaseDate": "2023-06-15",
         "purchasePrice": 3500.00,
         "notes": "Tandem main parachute",
-        "isActive": True,
+        "is_active": True,
         "specifications": {
             "size": "220 sq ft",
             "color": "White/Blue",
@@ -138,7 +138,7 @@ def test_update_equipment(client):
         "name": "Updated Name",
         "manufacturer": "Updated Manufacturer",
         "notes": "Updated notes",
-        "isActive": False
+        "is_active": False
     }
     response = client.put(f"/api/v1/equipment/{equipment_id}", json=update_data)
     assert response.status_code == 200
@@ -209,9 +209,9 @@ def test_get_active_equipment(client):
     """Test filtering equipment by active status"""
     # Create equipment with different active statuses
     equipment_data = [
-        {"name": "Active 1", "type": "PARACHUTE", "manufacturer": "PD", "isActive": True},
-        {"name": "Active 2", "type": "PARACHUTE", "manufacturer": "PD", "isActive": True},
-        {"name": "Inactive", "type": "PARACHUTE", "manufacturer": "PD", "isActive": False},
+        {"name": "Active 1", "type": "PARACHUTE", "manufacturer": "PD", "is_active": True},
+        {"name": "Active 2", "type": "PARACHUTE", "manufacturer": "PD", "is_active": True},
+        {"name": "Inactive", "type": "PARACHUTE", "manufacturer": "PD", "is_active": False},
     ]
 
     for eq_data in equipment_data:
