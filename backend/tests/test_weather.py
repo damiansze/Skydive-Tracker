@@ -23,23 +23,25 @@ def test_get_weather_valid_request(client):
         "visibility": [15000]
     }
 
-    with patch('httpx.AsyncClient.get', new_callable=AsyncMock) as mock_get:
+    with patch('httpx.AsyncClient.get') as mock_get:
         mock_response = AsyncMock()
-        mock_response.json.return_value = mock_response_data
+        mock_response.json = AsyncMock(return_value=mock_response_data)
         mock_response.status_code = 200
+        mock_response.raise_for_status = AsyncMock()
         mock_get.return_value = mock_response
 
         response = client.post("/api/v1/weather/", json=weather_request)
         assert response.status_code == 200
 
         weather_data = response.json()
-        assert weather_data["temperature_celsius"] == 15.5
-        assert weather_data["wind_speed_kmh"] == 12.0
-        assert weather_data["wind_direction_degrees"] == 180
-        assert weather_data["humidity_percent"] == 65
-        assert weather_data["pressure_hpa"] == 1013.25
-        assert weather_data["cloud_cover_percent"] == 25
-        assert weather_data["visibility_km"] == 15.0
+    weather = weather_data["weather"]
+    assert weather["temperature_celsius"] == 15.5
+    assert weather["wind_speed_kmh"] == 12.0
+    assert weather["wind_direction_degrees"] == 180
+    assert weather["humidity_percent"] == 65
+    assert weather["pressure_hpa"] == 1013.25
+    assert weather["cloud_cover_percent"] == 25
+    assert weather["visibility_km"] == 15.0
 
 def test_get_weather_invalid_coordinates(client):
     """Test weather request with invalid coordinates"""
@@ -80,7 +82,7 @@ def test_get_weather_api_error(client):
         "target_datetime": datetime.now(timezone.utc).isoformat()
     }
 
-    with patch('httpx.AsyncClient.get', new_callable=AsyncMock) as mock_get:
+    with patch('httpx.AsyncClient.get') as mock_get:
         mock_get.side_effect = httpx.RequestError("Network error")
 
         response = client.post("/api/v1/weather/", json=weather_request)
@@ -106,10 +108,11 @@ def test_get_weather_future_date(client):
         "visibility": [20000]
     }
 
-    with patch('httpx.AsyncClient.get', new_callable=AsyncMock) as mock_get:
+    with patch('httpx.AsyncClient.get') as mock_get:
         mock_response = AsyncMock()
-        mock_response.json.return_value = mock_response_data
+        mock_response.json = AsyncMock(return_value=mock_response_data)
         mock_response.status_code = 200
+        mock_response.raise_for_status = AsyncMock()
         mock_get.return_value = mock_response
 
         response = client.post("/api/v1/weather/", json=weather_request)
@@ -140,18 +143,20 @@ def test_get_weather_historical_date(client):
         # No visibility in archive API
     }
 
-    with patch('httpx.AsyncClient.get', new_callable=AsyncMock) as mock_get:
+    with patch('httpx.AsyncClient.get') as mock_get:
         mock_response = AsyncMock()
-        mock_response.json.return_value = mock_response_data
+        mock_response.json = AsyncMock(return_value=mock_response_data)
         mock_response.status_code = 200
+        mock_response.raise_for_status = AsyncMock()
         mock_get.return_value = mock_response
 
         response = client.post("/api/v1/weather/", json=weather_request)
         assert response.status_code == 200
 
         weather_data = response.json()
-        assert weather_data["temperature_celsius"] == 18.5
-        assert weather_data["visibility_km"] is None  # Should be null for archive data
+        weather = weather_data["weather"]
+        assert weather["temperature_celsius"] == 18.5
+        assert weather["visibility_km"] is None  # Should be null for archive data
 
         # Verify it uses archive API URL
         call_args = mock_get.call_args
@@ -176,17 +181,19 @@ def test_weather_data_validation(client):
         "visibility": [10000]
     }
 
-    with patch('httpx.AsyncClient.get', new_callable=AsyncMock) as mock_get:
+    with patch('httpx.AsyncClient.get') as mock_get:
         mock_response = AsyncMock()
-        mock_response.json.return_value = mock_response_data
+        mock_response.json = AsyncMock(return_value=mock_response_data)
         mock_response.status_code = 200
+        mock_response.raise_for_status = AsyncMock()
         mock_get.return_value = mock_response
 
         response = client.post("/api/v1/weather/", json=weather_request)
         assert response.status_code == 200
 
         weather_data = response.json()
-        assert weather_data["wind_direction_degrees"] == 0  # Should be normalized
+        weather = weather_data["weather"]
+        assert weather["wind_direction_degrees"] == 0  # Should be normalized
 
 def test_weather_api_timeout(client):
     """Test weather request timeout handling"""
@@ -196,7 +203,7 @@ def test_weather_api_timeout(client):
         "target_datetime": datetime.now(timezone.utc).isoformat()
     }
 
-    with patch('httpx.AsyncClient.get', new_callable=AsyncMock) as mock_get:
+    with patch('httpx.AsyncClient.get') as mock_get:
         mock_get.side_effect = httpx.TimeoutException("Request timeout")
 
         response = client.post("/api/v1/weather/", json=weather_request)
@@ -211,10 +218,11 @@ def test_weather_invalid_api_response(client):
         "target_datetime": datetime.now(timezone.utc).isoformat()
     }
 
-    with patch('httpx.AsyncClient.get', new_callable=AsyncMock) as mock_get:
+    with patch('httpx.AsyncClient.get') as mock_get:
         mock_response = AsyncMock()
         mock_response.json.return_value = {"invalid": "response"}
         mock_response.status_code = 200
+        mock_response.raise_for_status = AsyncMock()
         mock_get.return_value = mock_response
 
         response = client.post("/api/v1/weather/", json=weather_request)

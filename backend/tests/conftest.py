@@ -43,23 +43,14 @@ def db_session():
 @pytest.fixture(scope="function")
 def client(db_session):
     """Create a test client"""
-    import os
-
-    # Set the database URL environment variable for the app
-    original_db_url = os.environ.get("DATABASE_URL")
-    os.environ["DATABASE_URL"] = SQLALCHEMY_DATABASE_URL
-
     # Override the database dependency to use our test session
     app.dependency_overrides[get_db] = lambda: db_session
 
-    from fastapi.testclient import TestClient
-    with TestClient(app) as test_client:
-        yield test_client
-
-    # Restore original environment
-    if original_db_url is not None:
-        os.environ["DATABASE_URL"] = original_db_url
-    else:
-        os.environ.pop("DATABASE_URL", None)
+    # Also override the database initialization to do nothing
+    from unittest.mock import patch
+    with patch('app.db.database.init_db'):
+        from fastapi.testclient import TestClient
+        with TestClient(app) as test_client:
+            yield test_client
 
     app.dependency_overrides.clear()
