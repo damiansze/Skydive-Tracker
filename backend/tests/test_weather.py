@@ -33,13 +33,13 @@ def test_get_weather_valid_request(client):
         assert response.status_code == 200
 
         weather_data = response.json()
-        assert weather_data["temperatureCelsius"] == 15.5
-        assert weather_data["windSpeedKmh"] == 12.0
-        assert weather_data["windDirectionDegrees"] == 180
-        assert weather_data["humidityPercent"] == 65
-        assert weather_data["pressureHpa"] == 1013.25
-        assert weather_data["cloudCoverPercent"] == 25
-        assert weather_data["visibilityKm"] == 15.0
+        assert weather_data["temperature_celsius"] == 15.5
+        assert weather_data["wind_speed_kmh"] == 12.0
+        assert weather_data["wind_direction_degrees"] == 180
+        assert weather_data["humidity_percent"] == 65
+        assert weather_data["pressure_hpa"] == 1013.25
+        assert weather_data["cloud_cover_percent"] == 25
+        assert weather_data["visibility_km"] == 15.0
 
 def test_get_weather_invalid_coordinates(client):
     """Test weather request with invalid coordinates"""
@@ -150,8 +150,8 @@ def test_get_weather_historical_date(client):
         assert response.status_code == 200
 
         weather_data = response.json()
-        assert weather_data["temperatureCelsius"] == 18.5
-        assert weather_data["visibilityKm"] is None  # Should be null for archive data
+        assert weather_data["temperature_celsius"] == 18.5
+        assert weather_data["visibility_km"] is None  # Should be null for archive data
 
         # Verify it uses archive API URL
         call_args = mock_get.call_args
@@ -186,7 +186,7 @@ def test_weather_data_validation(client):
         assert response.status_code == 200
 
         weather_data = response.json()
-        assert weather_data["windDirectionDegrees"] == 0  # Should be normalized
+        assert weather_data["wind_direction_degrees"] == 0  # Should be normalized
 
 def test_weather_api_timeout(client):
     """Test weather request timeout handling"""

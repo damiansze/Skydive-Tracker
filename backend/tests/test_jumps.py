@@ -16,7 +16,7 @@ def test_create_jump_minimal(client):
     data = response.json()
     assert data["location"] == "Test Dropzone"
     assert data["altitude"] == 14000
-    assert data["jump_type"] == "SOLO"
+    assert data["jump_type"] == "solo"
     assert "id" in data
     assert "created_at" in data
 

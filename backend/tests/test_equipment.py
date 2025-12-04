@@ -6,30 +6,30 @@ def test_create_equipment_minimal(client):
     """Test creating equipment with minimal data"""
     equipment_data = {
         "name": "PD Sabre 170",
-        "type": "PARACHUTE",
+        "type": "parachute",
         "manufacturer": "Performance Designs"
     }
     response = client.post("/api/v1/equipment/", json=equipment_data)
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == "PD Sabre 170"
-    assert data["type"] == "PARACHUTE"
+    assert data["type"] == "parachute"
     assert data["manufacturer"] == "Performance Designs"
     assert "id" in data
-    assert data["isActive"] == True  # Default value
+    assert data["is_active"] == True  # Default value
 
 def test_create_equipment_complete(client):
     """Test creating equipment with all fields"""
     equipment_data = {
         "name": "Sigma Tandem 220",
-        "type": "PARACHUTE",
+        "type": "parachute",
         "manufacturer": "Paratec",
         "model": "Sigma Tandem",
         "serialNumber": "ST220-001",
         "purchaseDate": "2023-06-15",
         "purchasePrice": 3500.00,
         "notes": "Tandem main parachute",
-        "is_active": True,
+        "is_active": true,
         "specifications": {
             "size": "220 sq ft",
             "color": "White/Blue",
@@ -72,7 +72,7 @@ def test_get_equipment_with_data(client):
     equipment_data = [
         {
             "name": "PD Sabre 170",
-            "type": "PARACHUTE",
+            "type": "parachute",
             "manufacturer": "Performance Designs"
         },
         {
@@ -104,7 +104,7 @@ def test_get_equipment_by_id(client):
     # Create equipment
     equipment_data = {
         "name": "Test Parachute",
-        "type": "PARACHUTE",
+        "type": "parachute",
         "manufacturer": "Test Manufacturer"
     }
     create_response = client.post("/api/v1/equipment/", json=equipment_data)
@@ -127,7 +127,7 @@ def test_update_equipment(client):
     # Create equipment
     equipment_data = {
         "name": "Old Name",
-        "type": "PARACHUTE",
+        "type": "parachute",
         "manufacturer": "Old Manufacturer"
     }
     create_response = client.post("/api/v1/equipment/", json=equipment_data)
@@ -138,7 +138,7 @@ def test_update_equipment(client):
         "name": "Updated Name",
         "manufacturer": "Updated Manufacturer",
         "notes": "Updated notes",
-        "is_active": False
+        "is_active": false
     }
     response = client.put(f"/api/v1/equipment/{equipment_id}", json=update_data)
     assert response.status_code == 200
@@ -158,7 +158,7 @@ def test_delete_equipment(client):
     # Create equipment
     equipment_data = {
         "name": "Equipment to Delete",
-        "type": "PARACHUTE",
+        "type": "parachute",
         "manufacturer": "Test Manufacturer"
     }
     create_response = client.post("/api/v1/equipment/", json=equipment_data)
@@ -181,8 +181,8 @@ def test_get_equipment_by_type(client):
     """Test filtering equipment by type"""
     # Create equipment of different types
     equipment_data = [
-        {"name": "Main 1", "type": "PARACHUTE", "manufacturer": "PD"},
-        {"name": "Main 2", "type": "PARACHUTE", "manufacturer": "PD"},
+        {"name": "Main 1", "type": "parachute", "manufacturer": "PD"},
+        {"name": "Main 2", "type": "parachute", "manufacturer": "PD"},
         {"name": "Reserve", "type": "RESERVE_PARACHUTE", "manufacturer": "Paratec"},
         {"name": "Harness", "type": "HARNESSCONTAINER", "manufacturer": "Javelin"},
     ]
@@ -209,9 +209,9 @@ def test_get_active_equipment(client):
     """Test filtering equipment by active status"""
     # Create equipment with different active statuses
     equipment_data = [
-        {"name": "Active 1", "type": "PARACHUTE", "manufacturer": "PD", "is_active": True},
-        {"name": "Active 2", "type": "PARACHUTE", "manufacturer": "PD", "is_active": True},
-        {"name": "Inactive", "type": "PARACHUTE", "manufacturer": "PD", "is_active": False},
+        {"name": "Active 1", "type": "parachute", "manufacturer": "PD", "is_active": true},
+        {"name": "Active 2", "type": "parachute", "manufacturer": "PD", "is_active": true},
+        {"name": "Inactive", "type": "parachute", "manufacturer": "PD", "is_active": false},
     ]
 
     for eq_data in equipment_data:
@@ -260,7 +260,7 @@ def test_equipment_purchase_price_validation(client):
     # Valid positive price
     equipment_data = {
         "name": "Expensive Equipment",
-        "type": "PARACHUTE",
+        "type": "parachute",
         "manufacturer": "Test",
         "purchasePrice": 2500.50
     }
@@ -284,7 +284,7 @@ def test_equipment_specifications_storage(client):
 
     equipment_data = {
         "name": "Spec Test Equipment",
-        "type": "PARACHUTE",
+        "type": "parachute",
         "manufacturer": "Test Manufacturer",
         "specifications": specs
     }
