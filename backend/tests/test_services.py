@@ -7,12 +7,11 @@ from app.services.profile_service import ProfileService
 from app.services.statistics_service import StatisticsService
 from app.schemas.jump import JumpCreate, JumpUpdate
 from app.schemas.equipment import EquipmentCreate, EquipmentUpdate
-from app.schemas.profile import ProfileCreate, ProfileUpdate
+from app.schemas.profile import ProfileBase, ProfileUpdate
 from sqlalchemy.orm import Session
 
 def test_jump_service_create(db_session: Session):
     """Test JumpService create functionality"""
-    service = JumpService(db_session)
 
     jump_data = JumpCreate(
         date=datetime.now(timezone.utc),
@@ -23,7 +22,7 @@ def test_jump_service_create(db_session: Session):
         jumpType="SOLO"
     )
 
-    jump = service.create(jump_data)
+    jump = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(db_session, jump_data)
 
     assert jump.location == "Test Location"
     assert jump.altitude == 12000
@@ -41,10 +40,10 @@ def test_jump_service_get_by_id(db_session: Session):
         altitude=14000,
         jumpType="SOLO"
     )
-    created_jump = service.create(jump_data)
+    created_jump = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(jump_data)
 
     # Retrieve it
-    retrieved_jump = service.get_by_id(created_jump.id)
+    retrieved_jump = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_by_id(created_jump.id)
     assert retrieved_jump is not None
     assert retrieved_jump.id == created_jump.id
     assert retrieved_jump.location == "Test Jump"
@@ -61,10 +60,10 @@ def test_jump_service_get_all(db_session: Session):
     ]
 
     for jump_data in jumps_data:
-        service.create(jump_data)
+        JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(jump_data)
 
     # Get all jumps
-    all_jumps = service.get_all()
+    all_jumps = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_all()
     assert len(all_jumps) >= 3  # Might have more from other tests
 
     # Check that our jumps are there
@@ -84,7 +83,7 @@ def test_jump_service_update(db_session: Session):
         altitude=12000,
         jumpType="SOLO"
     )
-    created_jump = service.create(jump_data)
+    created_jump = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(jump_data)
 
     # Update it
     update_data = JumpUpdate(
@@ -92,7 +91,7 @@ def test_jump_service_update(db_session: Session):
         altitude=13000,
         notes="Updated notes"
     )
-    updated_jump = service.update(created_jump.id, update_data)
+    updated_jump = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, update(created_jump.id, update_data)
 
     assert updated_jump.location == "Updated Location"
     assert updated_jump.altitude == 13000
@@ -109,14 +108,14 @@ def test_jump_service_delete(db_session: Session):
         altitude=14000,
         jumpType="SOLO"
     )
-    created_jump = service.create(jump_data)
+    created_jump = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(jump_data)
 
     # Delete it
-    result = service.delete(created_jump.id)
+    result = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, delete(created_jump.id)
     assert result == True
 
     # Verify it's gone
-    retrieved_jump = service.get_by_id(created_jump.id)
+    retrieved_jump = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_by_id(created_jump.id)
     assert retrieved_jump is None
 
 def test_equipment_service_create_and_retrieve(db_session: Session):
@@ -131,13 +130,13 @@ def test_equipment_service_create_and_retrieve(db_session: Session):
         serialNumber="PD170-001"
     )
 
-    equipment = service.create(equipment_data)
+    equipment = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(equipment_data)
     assert equipment.name == "PD Sabre 170"
     assert equipment.type == "PARACHUTE"
     assert equipment.is_active == True  # Default value
 
     # Retrieve it
-    retrieved = service.get_by_id(equipment.id)
+    retrieved = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_by_id(equipment.id)
     assert retrieved is not None
     assert retrieved.serial_number == "PD170-001"
 
@@ -154,15 +153,15 @@ def test_equipment_service_filter_by_type(db_session: Session):
     ]
 
     for eq_data in equipment_data:
-        service.create(eq_data)
+        JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(eq_data)
 
     # Filter by parachute type
-    parachutes = service.get_all(equipment_type="PARACHUTE")
+    parachutes = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_all(equipment_type="PARACHUTE")
     assert len(parachutes) >= 2
     assert all(eq.type == "PARACHUTE" for eq in parachutes)
 
     # Filter by active status
-    active_equipment = service.get_all(is_active=True)
+    active_equipment = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_all(is_active=True)
     assert len(active_equipment) >= 4
 
 def test_profile_service_singleton_behavior(db_session: Session):
@@ -170,25 +169,25 @@ def test_profile_service_singleton_behavior(db_session: Session):
     service = ProfileService(db_session)
 
     # Create first profile
-    profile_data1 = ProfileCreate(
-        firstName="John",
-        lastName="Doe",
-        licenseNumber="USPA-123"
+    profile_data1 = ProfileBase(
+        name="John Doe",
+        license_number="USPA-123",
+        license_type="A"
     )
-    profile1 = service.create(profile_data1)
-    assert profile1.first_name == "John"
+    profile1 = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(profile_data1)
+    assert profile1.name == "John Doe"
 
     # Try to create second profile (should replace first)
-    profile_data2 = ProfileCreate(
-        firstName="Jane",
-        lastName="Smith",
-        licenseNumber="USPA-456"
+    profile_data2 = ProfileBase(
+        name="Jane Smith",
+        license_number="USPA-456",
+        license_type="B"
     )
-    profile2 = service.create(profile_data2)
-    assert profile2.first_name == "Jane"
+    profile2 = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(profile_data2)
+    assert profile2.name == "Jane Smith"
 
     # Get current profile (should be the latest)
-    current = service.get()
+    current = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get()
     assert current is not None
     assert current.first_name == "Jane"
     assert current.license_number == "USPA-456"
@@ -229,27 +228,27 @@ def test_statistics_service_calculations(db_session: Session):
 
     for jump_data in jumps_data:
         jump_create = JumpCreate(**jump_data)
-        jump_service.create(jump_create)
+        jump_JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(jump_create)
 
     # Test statistics calculations
-    total_jumps = stats_service.get_total_jumps()
+    total_jumps = stats_JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_total_jumps()
     assert total_jumps >= 2
 
-    summary = stats_service.get_summary()
+    summary = stats_JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_summary()
     assert summary["total_jumps"] >= 2
     assert summary["total_freefall_time_seconds"] >= 75.0  # 45 + 30
     assert summary["average_altitude"] >= 11000  # (12000 + 10000) / 2
 
     # Test monthly statistics
-    monthly = stats_service.get_monthly_statistics()
+    monthly = stats_JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_monthly_statistics()
     assert len(monthly) >= 1
 
     # Test location statistics
-    locations = stats_service.get_location_statistics()
+    locations = stats_JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_location_statistics()
     assert len(locations) >= 2  # At least Interlaken and Locarno
 
     # Test jump type distribution
-    jump_types = stats_service.get_jump_type_distribution()
+    jump_types = stats_JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_jump_type_distribution()
     assert jump_types.get("SOLO", 0) >= 1
     assert jump_types.get("TANDEM", 0) >= 1
 
@@ -258,16 +257,16 @@ def test_service_error_handling(db_session: Session):
     jump_service = JumpService(db_session)
 
     # Try to get non-existent jump
-    result = jump_service.get_by_id("non-existent-id")
+    result = jump_JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, get_by_id("non-existent-id")
     assert result is None
 
     # Try to update non-existent jump
     update_data = JumpUpdate(location="New Location")
-    result = jump_service.update("non-existent-id", update_data)
+    result = jump_JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, update("non-existent-id", update_data)
     assert result is None
 
     # Try to delete non-existent jump
-    result = jump_service.delete("non-existent-id")
+    result = jump_JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, delete("non-existent-id")
     assert result == False
 
 def test_equipment_service_update(db_session: Session):
@@ -281,7 +280,7 @@ def test_equipment_service_update(db_session: Session):
         manufacturer="Test Manufacturer",
         isActive=True
     )
-    equipment = service.create(equipment_data)
+    equipment = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(equipment_data)
 
     # Update it
     update_data = EquipmentUpdate(
@@ -289,7 +288,7 @@ def test_equipment_service_update(db_session: Session):
         isActive=False,
         notes="Updated notes"
     )
-    updated_equipment = service.update(equipment.id, update_data)
+    updated_equipment = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, update(equipment.id, update_data)
 
     assert updated_equipment.name == "Updated Equipment"
     assert updated_equipment.is_active == False
@@ -300,12 +299,12 @@ def test_profile_service_update(db_session: Session):
     service = ProfileService(db_session)
 
     # Create profile
-    profile_data = ProfileCreate(
-        firstName="Test",
-        lastName="User",
-        licenseNumber="TEST-123"
+    profile_data = ProfileBase(
+        name="Test User",
+        license_number="TEST-123",
+        license_type="C"
     )
-    profile = service.create(profile_data)
+    profile = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, create(profile_data)
 
     # Update it
     update_data = ProfileUpdate(
@@ -313,7 +312,7 @@ def test_profile_service_update(db_session: Session):
         licenseNumber="UPDATED-456",
         homeDropzone="New Dropzone"
     )
-    updated_profile = service.update(update_data)
+    updated_profile = JumpService.delete(db_session, update(db_session, get_all(db_sessionget_by_id(db_session, create(db_session, update(update_data)
 
     assert updated_profile.first_name == "Updated"
     assert updated_profile.license_number == "UPDATED-456"
