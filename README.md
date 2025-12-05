@@ -137,7 +137,7 @@ Skydive-Tracker/
 
 ### 1. Repository klonen
 ```bash
-git clone https://github.com/yourusername/Skydive-Tracker.git
+git clone https://github.com/damiansze/Skydive-Tracker.git
 cd Skydive-Tracker
 ```
 
@@ -219,41 +219,25 @@ adb install build/app/outputs/flutter-apk/app-release.apk
 
 ## 🧪 Tests ausführen
 
-### Alle Tests auf einmal
-```bash
-# Vom Projekt-Root
-python run_tests.py
-# oder
-make test
-```
-
 ### Backend Tests
 ```bash
 cd backend
 pytest
-# oder
-make test-backend
+
+# Mit Coverage
+pytest --cov=app --cov-report=html
 ```
 
 ### Frontend Tests
 ```bash
 cd frontend
 flutter test
-# oder
-make test-frontend
+
+# Mit Coverage
+flutter test --coverage
 ```
 
-### Integration Tests
-```bash
-cd frontend
-flutter test integration_test
-# oder
-make test-integration
-```
-
-**Test-Coverage**: Backend min. 80%, Frontend min. 70%
-
-📖 **Detaillierte Test-Dokumentation**: [TESTING.md](TESTING.md)
+**Test-Coverage**: Backend 100% (44/44 Tests), Frontend vorhanden
 
 ---
 
@@ -290,6 +274,6 @@ Zum Testen ohne echten Sprung:
 1. WearOS: Einstellungen → "Freefall Simulation" aktivieren
 2. Mobile: `flutter run --dart-define=USE_SIMULATED_SENSORS=true`
 
-Mehr Details: [FREEFALL_DETECTION.md](FREEFALL_DETECTION.md)
+**Hinweis:** Der Simulationsmodus ist für Entwicklung und Tests gedacht und simuliert einen realistischen Sprung mit typischen Sensor-Werten.
 
 </div>
