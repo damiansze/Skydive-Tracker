@@ -292,36 +292,4 @@ Zum Testen ohne echten Sprung:
 
 Mehr Details: [FREEFALL_DETECTION.md](FREEFALL_DETECTION.md)
 
----
-
-## 🤝 Mitwirken
-
-Beiträge sind willkommen! So kannst du mitmachen:
-
-1. **Fork** das Repository
-2. Erstelle einen **Feature Branch** (`git checkout -b feature/AmazingFeature`)
-3. **Commit** deine Änderungen (`git commit -m 'Add some AmazingFeature'`)
-4. **Push** zum Branch (`git push origin feature/AmazingFeature`)
-5. Öffne einen **Pull Request**
-
----
-
-## 📄 Lizenz
-
-Dieses Projekt ist unter der MIT-Lizenz lizenziert. Siehe [LICENSE](LICENSE) für Details.
-
----
-
-## 🙏 Danksagungen
-
-- [Open-Meteo](https://open-meteo.com/) – Kostenlose Wetter-API
-- [Flutter](https://flutter.dev/) – Cross-Platform Framework
-- [FastAPI](https://fastapi.tiangolo.com/) – Python Web Framework
-
----
-
-<div align="center">
-
-**Made with ❤️ for Skydivers**
-
 </div>
