@@ -21,7 +21,7 @@ class EquipmentService:
     @staticmethod
     def create(db: Session, equipment_data: EquipmentCreate) -> Equipment:
         """Create a new equipment item"""
-        equipment = Equipment(**equipment_data.dict())
+        equipment = Equipment(**equipment_data.model_dump())
         db.add(equipment)
         db.commit()
         db.refresh(equipment)
@@ -34,7 +34,7 @@ class EquipmentService:
         if not equipment:
             return None
         
-        update_data = equipment_update.dict(exclude_unset=True)
+        update_data = equipment_update.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(equipment, field, value)
         

@@ -25,9 +25,7 @@ class JumpBase(BaseModel):
     freefall_stats: Optional[FreefallStatsBase] = None
     weather: Optional[WeatherData] = None
     
-    class Config:
-        # Ignore extra fields including deprecated checklist_completed
-        extra = "ignore"
+    model_config = {"extra": "ignore"}
 
 class JumpCreate(JumpBase):
     pass
@@ -46,9 +44,7 @@ class JumpUpdate(BaseModel):
     freefall_stats: Optional[FreefallStatsBase] = None
     weather: Optional[WeatherData] = None
     
-    class Config:
-        # Ignore extra fields including deprecated checklist_completed
-        extra = "ignore"
+    model_config = {"extra": "ignore"}
 
 class JumpResponse(JumpBase):
     id: str
@@ -74,13 +70,6 @@ class JumpResponse(JumpBase):
             freefall_data = {}
             has_any_freefall_data = False
             
-            # Debug: Check what attributes exist
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"JumpResponse.model_validate - obj attributes: {dir(obj)}")
-            logger.info(f"JumpResponse.model_validate - freefall_duration_seconds: {getattr(obj, 'freefall_duration_seconds', 'NOT_FOUND')}")
-            logger.info(f"JumpResponse.model_validate - max_vertical_velocity_ms: {getattr(obj, 'max_vertical_velocity_ms', 'NOT_FOUND')}")
-            
             if hasattr(obj, 'freefall_duration_seconds') and obj.freefall_duration_seconds is not None:
                 freefall_data['freefall_duration_seconds'] = obj.freefall_duration_seconds
                 has_any_freefall_data = True
@@ -93,8 +82,6 @@ class JumpResponse(JumpBase):
             if hasattr(obj, 'deployment_time') and obj.deployment_time is not None:
                 freefall_data['deployment_time'] = obj.deployment_time.isoformat() if isinstance(obj.deployment_time, datetime) else obj.deployment_time
                 has_any_freefall_data = True
-            
-            logger.info(f"JumpResponse.model_validate - freefall_data: {freefall_data}, has_any: {has_any_freefall_data}")
             
             # Always include freefall_stats if any data exists, even if empty dict
             if has_any_freefall_data:

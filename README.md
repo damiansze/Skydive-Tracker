@@ -162,6 +162,12 @@ Der Server läuft nun auf `http://localhost:8000`
 **API-Dokumentation:** `http://localhost:8000/docs` (Swagger UI)
 
 ### 3. Frontend starten
+
+**Emulator starten:**
+- **Android Studio:** Device Manager → Create Device → Start Emulator
+- **Command Line:** `emulator -avd <device_name>`
+- **iOS Simulator (macOS):** `open -a Simulator`
+
 ```bash
 # In das Frontend-Verzeichnis wechseln
 cd frontend
@@ -172,6 +178,8 @@ flutter pub get
 # App starten (Emulator muss laufen)
 flutter run
 ```
+
+**Hinweis:** Für Android-Entwicklung wird Android Studio empfohlen, da es den Android Emulator sowie alle notwendigen SDKs und Build-Tools mitbringt.
 
 ### 4. API-Endpunkt konfigurieren
 Die Backend-URL kann in `frontend/lib/config/api_config.dart` angepasst werden:

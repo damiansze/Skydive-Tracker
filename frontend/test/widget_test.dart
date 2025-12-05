@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:flutter_skydive_tracker/main.dart';
-import 'package:flutter_skydive_tracker/screens/home_screen_new.dart';
 import 'package:flutter_skydive_tracker/services/wear_os_service.dart';
-
-// Mock classes for testing
-class MockWearOSService extends Mock implements WearOSService {}
 
 void main() {
   group('App Widget Tests', () {
@@ -48,11 +43,6 @@ void main() {
   });
 
   group('WearOS Service Tests', () {
-    late MockWearOSService mockWearOSService;
-
-    setUp(() {
-      mockWearOSService = MockWearOSService();
-    });
 
     test('WearOSService shouldUseWatchLayout returns correct values', () {
       // Phone size should return false

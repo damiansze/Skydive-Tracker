@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/jump.dart';
 import '../models/equipment.dart';
@@ -51,8 +50,6 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
   WeatherData? _weatherData;
   bool _isLoadingWeather = false;
   String? _weatherError;
-
-  bool _isInitializing = true; // Track if we're still initializing
   
   @override
   void initState() {
@@ -60,12 +57,10 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
     if (widget.jump != null) {
       _loadJumpData();
       _isEditingMode = false; // Start in preview mode for existing jumps
-      _isInitializing = false;
     } else {
       _isEditingMode = true; // Always editable for new jumps
       // Don't auto-fetch location on init - let user choose when to use current location
       // This prevents overwriting user input
-      _isInitializing = false;
     }
     
     // Listen to location field changes for geocoding
@@ -156,55 +151,6 @@ class _AddJumpScreenState extends ConsumerState<AddJumpScreen> {
           _weatherError = 'Fehler beim Abrufen der Wetterdaten';
         });
       }
-    }
-  }
-
-  Future<void> _getCurrentLocation() async {
-    // Only update location if user is not actively typing
-    // This prevents overwriting user input
-    if (!_isEditingMode || _locationController.text.trim().isNotEmpty) {
-      // Don't overwrite if user has already entered something
-      return;
-    }
-    
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition();
-      setState(() {
-        _latitude = position.latitude;
-        _longitude = position.longitude;
-        _currentLocation = LatLng(_latitude!, _longitude!);
-      });
-      
-      // Only set address if field is still empty (user hasn't typed)
-      // This prevents overwriting user input
-      if (mounted && _locationController.text.trim().isEmpty) {
-        final address = await GeocodingService.getAddressFromCoordinates(_currentLocation!);
-        // Filter out Google Maps default address
-        if (address != null && 
-            !address.toLowerCase().contains('amphitheatre') &&
-            !address.toLowerCase().contains('mountain view')) {
-          _locationController.text = address;
-        }
-      }
-    } catch (e) {
-      // Location not available
     }
   }
 

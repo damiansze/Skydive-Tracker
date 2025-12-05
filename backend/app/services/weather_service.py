@@ -161,7 +161,7 @@ class WeatherService:
                 timeout=15.0
             )
             response.raise_for_status()
-            data = await response.json()
+            data = response.json()
         
         # Log the timezone info from API response
         logger.info(
@@ -212,7 +212,7 @@ class WeatherService:
                 timeout=15.0
             )
             response.raise_for_status()
-            data = await response.json()
+            data = response.json()
         
         logger.info(
             "Archive API response received",
