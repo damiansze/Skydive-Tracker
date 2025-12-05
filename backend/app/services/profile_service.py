@@ -27,7 +27,7 @@ class ProfileService:
                 profile.profile_picture_url = profile_data.profile_picture_url
         else:
             # Create new profile
-            profile = Profile(**profile_data.dict())
+            profile = Profile(**profile_data.model_dump())
             db.add(profile)
         
         db.commit()
@@ -41,7 +41,7 @@ class ProfileService:
         if not profile:
             return None
         
-        update_data = profile_update.dict(exclude_unset=True)
+        update_data = profile_update.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(profile, field, value)
         

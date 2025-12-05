@@ -49,6 +49,18 @@ class Jump(Base):
     max_vertical_velocity_ms = Column(Float, nullable=True)
     exit_time = Column(DateTime(timezone=True), nullable=True)
     deployment_time = Column(DateTime(timezone=True), nullable=True)
+    
+    # Weather data
+    weather_temperature_celsius = Column(Float, nullable=True)
+    weather_wind_speed_kmh = Column(Float, nullable=True)
+    weather_wind_direction_degrees = Column(Integer, nullable=True)
+    weather_wind_gusts_kmh = Column(Float, nullable=True)
+    weather_code = Column(Integer, nullable=True)
+    weather_description = Column(String, nullable=True)
+    weather_humidity_percent = Column(Integer, nullable=True)
+    weather_pressure_hpa = Column(Float, nullable=True)
+    weather_cloud_cover_percent = Column(Integer, nullable=True)
+    weather_visibility_km = Column(Float, nullable=True)
 
     # Relationships
     equipment = relationship("Equipment", secondary=jump_equipment, backref="jumps")

@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
 from app.models.jump import JumpType, JumpMethod
+from app.schemas.weather import WeatherData
 
 class FreefallStatsBase(BaseModel):
     freefall_duration_seconds: Optional[float] = None
@@ -22,10 +23,9 @@ class JumpBase(BaseModel):
     # checklist_completed removed - no longer used
     notes: Optional[str] = None
     freefall_stats: Optional[FreefallStatsBase] = None
+    weather: Optional[WeatherData] = None
     
-    class Config:
-        # Ignore extra fields including deprecated checklist_completed
-        extra = "ignore"
+    model_config = {"extra": "ignore"}
 
 class JumpCreate(JumpBase):
     pass
@@ -42,10 +42,9 @@ class JumpUpdate(BaseModel):
     # checklist_completed removed - no longer used
     notes: Optional[str] = None
     freefall_stats: Optional[FreefallStatsBase] = None
+    weather: Optional[WeatherData] = None
     
-    class Config:
-        # Ignore extra fields including deprecated checklist_completed
-        extra = "ignore"
+    model_config = {"extra": "ignore"}
 
 class JumpResponse(JumpBase):
     id: str
@@ -71,13 +70,6 @@ class JumpResponse(JumpBase):
             freefall_data = {}
             has_any_freefall_data = False
             
-            # Debug: Check what attributes exist
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"JumpResponse.model_validate - obj attributes: {dir(obj)}")
-            logger.info(f"JumpResponse.model_validate - freefall_duration_seconds: {getattr(obj, 'freefall_duration_seconds', 'NOT_FOUND')}")
-            logger.info(f"JumpResponse.model_validate - max_vertical_velocity_ms: {getattr(obj, 'max_vertical_velocity_ms', 'NOT_FOUND')}")
-            
             if hasattr(obj, 'freefall_duration_seconds') and obj.freefall_duration_seconds is not None:
                 freefall_data['freefall_duration_seconds'] = obj.freefall_duration_seconds
                 has_any_freefall_data = True
@@ -91,14 +83,39 @@ class JumpResponse(JumpBase):
                 freefall_data['deployment_time'] = obj.deployment_time.isoformat() if isinstance(obj.deployment_time, datetime) else obj.deployment_time
                 has_any_freefall_data = True
             
-            logger.info(f"JumpResponse.model_validate - freefall_data: {freefall_data}, has_any: {has_any_freefall_data}")
-            
             # Always include freefall_stats if any data exists, even if empty dict
             if has_any_freefall_data:
                 data['freefall_stats'] = freefall_data
             else:
                 # Explicitly set to None if no data exists
                 data['freefall_stats'] = None
+            
+            # Format weather data from model attributes
+            weather_data = {}
+            has_any_weather_data = False
+            
+            weather_fields = [
+                ('weather_temperature_celsius', 'temperature_celsius'),
+                ('weather_wind_speed_kmh', 'wind_speed_kmh'),
+                ('weather_wind_direction_degrees', 'wind_direction_degrees'),
+                ('weather_wind_gusts_kmh', 'wind_gusts_kmh'),
+                ('weather_code', 'weather_code'),
+                ('weather_description', 'weather_description'),
+                ('weather_humidity_percent', 'humidity_percent'),
+                ('weather_pressure_hpa', 'pressure_hpa'),
+                ('weather_cloud_cover_percent', 'cloud_cover_percent'),
+                ('weather_visibility_km', 'visibility_km'),
+            ]
+            
+            for model_field, schema_field in weather_fields:
+                if hasattr(obj, model_field) and getattr(obj, model_field) is not None:
+                    weather_data[schema_field] = getattr(obj, model_field)
+                    has_any_weather_data = True
+            
+            if has_any_weather_data:
+                data['weather'] = weather_data
+            else:
+                data['weather'] = None
             
             # Use model_validate with the prepared data dict
             return super().model_validate(data, **kwargs)

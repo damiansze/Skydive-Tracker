@@ -1,0 +1,345 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../services/freefall_detection_service.dart';
+import '../../widgets/wear_os/wear_scaffold.dart';
+import '../settings_screen.dart';
+
+/// Provider for simulation mode state
+final simulationModeProvider = StateProvider<bool>((ref) => 
+    FreefallDetectionService.useSimulatedSensors);
+
+/// Settings screen for WearOS
+class WearSettingsScreen extends ConsumerWidget {
+  const WearSettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final metric = ref.watch(metricProvider);
+    final timeFormat = ref.watch(timeFormatProvider);
+    final simulationMode = ref.watch(simulationModeProvider);
+
+    return WearScaffold(
+      title: 'Settings',
+      showBackButton: true,
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        children: [
+          // Theme
+          _buildSettingCard(
+            context,
+            icon: Icons.brightness_6,
+            title: 'Design',
+            value: _getThemeModeText(themeMode),
+            onTap: () => _showThemeDialog(context, ref, themeMode),
+          ),
+          const SizedBox(height: 4),
+          
+          // Metric
+          _buildSettingCard(
+            context,
+            icon: Icons.straighten,
+            title: 'Einheit',
+            value: metric == 'metric' ? 'Metrisch' : 'Imperial',
+            onTap: () => _showMetricDialog(context, ref, metric),
+          ),
+          const SizedBox(height: 4),
+          
+          // Time Format
+          _buildSettingCard(
+            context,
+            icon: Icons.access_time,
+            title: 'Zeit',
+            value: timeFormat == '24h' ? '24h' : '12h',
+            onTap: () => _showTimeFormatDialog(context, ref, timeFormat),
+          ),
+          const SizedBox(height: 6),
+          
+          // Freefall Simulation Toggle
+          _buildSimulationToggle(context, ref, simulationMode),
+          const SizedBox(height: 6),
+          
+          // Info - compact
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 12,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'Skydive v1.0 WearOS',
+                    style: TextStyle(fontSize: 8),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildSimulationToggle(BuildContext context, WidgetRef ref, bool isEnabled) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      color: isEnabled ? Colors.orange.withOpacity(0.15) : null,
+      child: InkWell(
+        onTap: () {
+          final newValue = !isEnabled;
+          FreefallDetectionService.setUseSimulation(newValue);
+          ref.read(simulationModeProvider.notifier).state = newValue;
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            children: [
+              Icon(
+                Icons.bug_report,
+                size: 14,
+                color: isEnabled ? Colors.orange : null,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Freefall Simulation',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isEnabled ? Colors.orange : null,
+                      ),
+                    ),
+                    Text(
+                      isEnabled ? 'Aktiviert (Test)' : 'Deaktiviert',
+                      style: TextStyle(
+                        fontSize: 8,
+                        color: isEnabled ? Colors.orange : Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: isEnabled,
+                onChanged: (value) {
+                  FreefallDetectionService.setUseSimulation(value);
+                  ref.read(simulationModeProvider.notifier).state = value;
+                },
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            children: [
+              Icon(icon, size: 14),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 8,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, size: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getThemeModeText(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.system:
+        return 'System';
+      case ThemeMode.light:
+        return 'Hell';
+      case ThemeMode.dark:
+        return 'Dunkel';
+    }
+  }
+
+  void _showThemeDialog(BuildContext context, WidgetRef ref, ThemeMode current) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildDialogOption(
+              context,
+              title: 'System',
+              selected: current == ThemeMode.system,
+              onTap: () {
+                ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
+                Navigator.pop(context);
+              },
+            ),
+            _buildDialogOption(
+              context,
+              title: 'Hell',
+              selected: current == ThemeMode.light,
+              onTap: () {
+                ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
+                Navigator.pop(context);
+              },
+            ),
+            _buildDialogOption(
+              context,
+              title: 'Dunkel',
+              selected: current == ThemeMode.dark,
+              onTap: () {
+                ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMetricDialog(BuildContext context, WidgetRef ref, String current) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildDialogOption(
+              context,
+              title: 'Metrisch (m)',
+              selected: current == 'metric',
+              onTap: () {
+                ref.read(metricProvider.notifier).setMetric('metric');
+                Navigator.pop(context);
+              },
+            ),
+            _buildDialogOption(
+              context,
+              title: 'Imperial (ft)',
+              selected: current == 'imperial',
+              onTap: () {
+                ref.read(metricProvider.notifier).setMetric('imperial');
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTimeFormatDialog(BuildContext context, WidgetRef ref, String current) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildDialogOption(
+              context,
+              title: '24h',
+              selected: current == '24h',
+              onTap: () {
+                ref.read(timeFormatProvider.notifier).setTimeFormat('24h');
+                Navigator.pop(context);
+              },
+            ),
+            _buildDialogOption(
+              context,
+              title: '12h (AM/PM)',
+              selected: current == '12h',
+              onTap: () {
+                ref.read(timeFormatProvider.notifier).setTimeFormat('12h');
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialogOption(
+    BuildContext context, {
+    required String title,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              size: 14,
+              color: selected ? Theme.of(context).colorScheme.primary : null,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: selected ? FontWeight.bold : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

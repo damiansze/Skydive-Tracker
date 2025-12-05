@@ -1,9 +1,10 @@
 """Main FastAPI application"""
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.api.v1 import jumps, equipment, profile, statistics
+from app.api.v1 import jumps, equipment, profile, statistics, weather
 from app.db.database import init_db
 from app.core.logging_config import setup_logging, get_logger
 
@@ -12,24 +13,10 @@ log_level = os.getenv("LOG_LEVEL", "INFO")
 setup_logging(log_level)
 logger = get_logger(__name__)
 
-app = FastAPI(
-    title="Skydive Tracker API",
-    description="Backend API für die Fallschirmsprung-Tracking-App",
-    version="1.0.0",
-)
-
-# CORS middleware for mobile app
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Initialize database on startup
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown events"""
+    # Startup
     logger.info("Starting application", extra={"event": "app_startup"})
     try:
         init_db()
@@ -37,10 +24,28 @@ async def startup_event():
     except Exception as e:
         logger.error("Failed to initialize database", extra={"event": "db_init_error", "error": str(e)})
         raise
-
-@app.on_event("shutdown")
-async def shutdown_event():
+    
+    yield
+    
+    # Shutdown
     logger.info("Shutting down application", extra={"event": "app_shutdown"})
+
+app = FastAPI(
+    title="Skydive Tracker API",
+    description="Backend API für die Fallschirmsprung-Tracking-App",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# CORS middleware for mobile app
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Request logging middleware
 @app.middleware("http")
@@ -87,6 +92,7 @@ app.include_router(jumps.router, prefix="/api/v1/jumps", tags=["jumps"])
 app.include_router(equipment.router, prefix="/api/v1/equipment", tags=["equipment"])
 app.include_router(profile.router, prefix="/api/v1/profile", tags=["profile"])
 app.include_router(statistics.router, prefix="/api/v1/statistics", tags=["statistics"])
+app.include_router(weather.router, prefix="/api/v1/weather", tags=["weather"])
 
 @app.get("/")
 async def root():
