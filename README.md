@@ -276,4 +276,30 @@ Zum Testen ohne echten Sprung:
 
 **Hinweis:** Der Simulationsmodus ist für Entwicklung und Tests gedacht und simuliert einen realistischen Sprung mit typischen Sensor-Werten.
 
-</div>
+---
+
+## 📄 Lizenz
+
+Dieses Projekt ist **urheberrechtlich geschützt**. Der Code ist öffentlich sichtbar für Portfolio- und Demonstrationszwecke, darf aber nicht ohne ausdrückliche Genehmigung verwendet, kopiert oder verändert werden. Details siehe [LICENSE](LICENSE).
+
+---
+
+## 📧 Kontakt & Support
+
+**Dieses Projekt ist ein Portfolio-Projekt.** 
+
+Bei Fragen kannst du gerne ein [Issue](https://github.com/DEIN-USERNAME/Skydive-Tracker/issues) auf GitHub öffnen.
+
+Für kommerzielle Anfragen oder Lizenzierungsfragen kontaktiere mich bitte direkt.
+
+---
+
+## 🙏 Danksagungen
+
+- [Open-Meteo](https://open-meteo.com/) für die freie Wetter-API
+- [flutter_map](https://pub.dev/packages/flutter_map) für die Kartenintegration
+- Die Flutter und FastAPI Communities
+
+---
+
+**Blue Skies! 🪂**
