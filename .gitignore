@@ -63,6 +63,11 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# Database files (SQLite)
+*.db
+*.sqlite
+skydive_tracker.db
+
 # Flask stuff:
 instance/
 .webassets-cache
@@ -218,6 +223,7 @@ mobile/dist/
 
 # Backend
 backend/venv/
+backend/venvtest/
 backend/env/
 backend/*.db
 backend/*.sqlite
@@ -225,3 +231,15 @@ backend/*.sqlite3
 backend/.pytest_cache/
 backend/htmlcov/
 backend/.coverage
+
+# Uploads (user-generated content - personal data)
+uploads/
+backend/uploads/
+
+# Frontend (Flutter)
+frontend/coverage/
+frontend/build/
+
+# Backup files
+*.backup
+*.bak
