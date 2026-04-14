@@ -288,18 +288,6 @@ Dieses Projekt ist **urheberrechtlich geschützt**. Der Code ist öffentlich sic
 
 **Dieses Projekt ist ein Portfolio-Projekt.** 
 
-Bei Fragen kannst du gerne ein [Issue](https://github.com/DEIN-USERNAME/Skydive-Tracker/issues) auf GitHub öffnen.
+Bei Fragen kannst du gerne ein Issue auf GitHub öffnen.
 
 Für kommerzielle Anfragen oder Lizenzierungsfragen kontaktiere mich bitte direkt.
-
----
-
-## 🙏 Danksagungen
-
-- [Open-Meteo](https://open-meteo.com/) für die freie Wetter-API
-- [flutter_map](https://pub.dev/packages/flutter_map) für die Kartenintegration
-- Die Flutter und FastAPI Communities
-
----
-
-**Blue Skies! 🪂**
