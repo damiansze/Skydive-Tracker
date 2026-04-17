@@ -11,7 +11,13 @@
 
 *Verfügbar für Android, iOS und WearOS*
 
-</div>
+---
+
+## Über das Projekt
+
+Dieses Projekt entstand im Rahmen der Mini-Challenge des FHNW-Moduls **«KI-gestütztes Programmieren»**. Ziel war es, mit KI-Unterstützung eine vollständige Full-Stack-Applikation zu entwickeln.
+
+Den zugehörigen Projektbericht gibt es hier: [Bericht_Skydive_Tracker.pdf](Bericht_Skydive_Tracker.pdf)
 
 ---
 
